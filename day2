@@ -1,0 +1,87 @@
+
+# This code is part of the Advent of Code 2023 challenge.
+# Day 2: Cube Conundrum
+
+with open("game_raw_data.txt") as games_raw_data:
+    list_of_games = games_raw_data.readlines()
+
+# PART 1 ///////////////////////////////////
+
+# Deal with list of game ID values
+ID_list = range(1,101)
+games_raw_info = []
+for games in list_of_games:
+    ID_gamesinfo_2Dlist = games.split(":")
+    games_raw_info.append(ID_gamesinfo_2Dlist[1])
+
+# Initialises list of cleaned events over all of the games
+cleaned_events_over_all_games_list = []
+
+# game is of format: ' 1 green, 2 blue; 13 red, 2 blue, 3 green; 4 green, 14 red\n'
+for game in games_raw_info:
+
+    # Cleans the list of the events in the one game
+    event_list = (game.strip()).split(";")
+
+    # Initialises list of cleaned events for the one game
+    list_of_cleaned_events_in_game = []
+
+    # This loop first cleans the data by removing commas
+    # It then cleans the event data by a loop sorting through each colour
+    for raw_event in event_list:
+        par_clean_event = raw_event.split(",")
+
+        clean_event = [0,0,0]
+        for colour in par_clean_event:
+            if "green" in colour:
+                green_count = int(colour.replace("green",""))
+                clean_event[0] += green_count
+            elif "blue" in colour:
+                blue_count = int(colour.replace("blue",""))
+                clean_event[1] += blue_count
+            elif "red" in colour:
+                red_count = int(colour.replace("red",""))
+                clean_event[2] += red_count
+
+            # At end of "for colour in clean_event:" loop, should have updated clean_event list with [no.G, no.B, no.R]
+        list_of_cleaned_events_in_game.append(clean_event)
+
+        # At end of "for raw_event in event_list:" loop, should have list of all the clean events in a given game of form [[GBR], [GBR]...]
+    cleaned_events_over_all_games_list.append(list_of_cleaned_events_in_game)
+
+# Make a dictionary with {ID: [list of event information], ...}
+ID_event_dict = {key:value for key, value in zip(ID_list,cleaned_events_over_all_games_list)}
+# 2D list with same information:
+zip_ID_events = list(zip(ID_list,cleaned_events_over_all_games_list))
+
+# Check viability of each game:
+max_gbr_counts = [13, 14, 12]
+viable_games_IDs = []
+for game in zip_ID_events:
+    n = 0
+    for event in game[1]:
+        if event[0] <= max_gbr_counts[0] and event[1] <= max_gbr_counts[1] and event[2] <= max_gbr_counts[2]:
+            n += 1
+    if n == len(game[1]):
+        viable_games_IDs.append(game[0])
+
+# print(viable_games_IDs)
+# print(sum(viable_games_IDs))
+# test_string = "hello:world"
+# # split_string = test_string.split(":")
+# print(test_string.replace("world",""))
+
+
+# PART 2 /////////////////////////////////////////////////
+power = 0
+for game in zip_ID_events:
+    green_counts = []
+    blue_counts = []
+    red_counts = []
+    for event in game[1]:
+        green_counts.append(event[0])
+        blue_counts.append(event[1])
+        red_counts.append(event[2])
+    power += max(green_counts) * max(blue_counts) * max(red_counts)
+
+print(power)
