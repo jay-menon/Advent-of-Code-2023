@@ -1,0 +1,345 @@
+# This code is part of the Advent of Code 2023 challenge.
+# Day 3: Gear Ratios
+
+with open("schematic.txt") as schematic:
+    schematic_rows = schematic.readlines()
+num_list = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
+
+# PART 1 //////////////////////////////////////////////////////////////////////
+
+# # Pad the schematic with a border of periods
+# cleaned_schematic = []
+# for row in schematic_rows:
+#     cleaned_row = row.strip("\n")
+#     cleaned_schematic.append(cleaned_row)
+
+# row_length = len(cleaned_schematic[0])
+# row_padding = "." * row_length
+# # print(row_padding)
+# cleaned_schematic.insert(0,row_padding)
+# cleaned_schematic.append(row_padding)
+
+# padded_schematic = []
+# for row in cleaned_schematic:
+#     padded_line = "." + row + "."
+#     padded_schematic.append(padded_line)
+
+# useful_part_num = []
+# # Find and index all the numbers in a line
+# row_index = 0
+# for row in padded_schematic:
+#     part_nums_in_row = []
+#     # Skips the padding on the first and last row
+#     if row.count(".") == 142:
+#         row_index += 1
+#         continue
+#     else:
+#         n = 0
+#         for value in row:
+#             # Catches the first number of each part number and ignores any other numbers from that part number
+#             if value in num_list and not row[n-1] in num_list:
+#                 # Stores first number in part number
+#                 current_num = value
+#                 # Gets index of number after
+#                 next_index = n + 1
+#                 # Gets the next number
+#                 next_value = row[next_index]
+#                 # Will contain all following 
+#                 part_num_list = [value]
+#                 # Breaks loop once the next number is no longer a number
+#                 while next_value in num_list:
+#                     part_num_list.append(row[next_index])
+#                     next_index += 1
+#                     next_value = row[next_index]
+#                 # At end of while loop, part_num_list contains list of all the numbers in the current part number
+                
+#                 # We now want to check around the index numbers of each value in this list for symbols
+#                 # If ANY have symbols around it, the whole number passes and we save number to useful_part_num_list
+#                 num_index = n
+#                 for num in part_num_list:
+#                     num_perimeter = padded_schematic[row_index - 1][num_index-1:num_index+2] + padded_schematic[row_index][num_index-1:num_index+2] + padded_schematic[row_index + 1][num_index-1:num_index+2]
+#                     #print(num_perimeter)
+#                     for character in num_perimeter:
+#                         if character == "." or character in num_list:
+#                             is_useful_num = False
+#                         else:
+#                             is_useful_num = True
+#                             break
+#                     if is_useful_num == True:
+#                         useful_part_num.append(int("".join(part_num_list)))
+#                         break
+#                     num_index += 1
+
+#                 part_nums_in_row.append(part_num_list)
+
+#             # tracks index of current value
+#             n += 1
+    
+#     # Tracks index of the row
+#     row_index +=1
+
+
+# # print(useful_part_num)
+# print(sum(useful_part_num))
+
+# PART 2 //////////////////////////////////////////////////////////////////////
+
+# Once again, pad border with periods
+cleaned_schematic = []
+for row in schematic_rows:
+    cleaned_row = row.strip("\n")
+    cleaned_schematic.append(cleaned_row)
+
+row_length = len(cleaned_schematic[0])
+row_padding = "." * row_length
+# print(row_padding)
+cleaned_schematic.insert(0,row_padding)
+cleaned_schematic.append(row_padding)
+
+padded_schematic = []
+for row in cleaned_schematic:
+    padded_line = "." + row + "."
+    padded_schematic.append(padded_line)
+
+# print(padded_schematic)
+gear_nums_list = []
+ast_count = 0
+# Find and index all the asterisks in a line
+row_index = 0
+for row in padded_schematic:
+    part_nums_in_row = []
+    # Skips the padding on the first and last row
+    if row.count(".") == 142:
+        row_index += 1
+        continue
+    else:
+        n = 0
+        for value in row:
+            # Identifies asterisk
+            if value == "*":
+                # Stores all perimeters of asterisk:
+                ast_count += 1
+                asterisk_top_perim = padded_schematic[row_index - 1][n-1:n+2]
+                asterisk_left_perim = padded_schematic[row_index][n-1]
+                asterisk_right_perim = padded_schematic[row_index][n+1]
+                asterisk_bottom_perim = padded_schematic[row_index + 1][n-1:n+2]
+                part_number_list = []
+                # Checks the left perimeter for a part number and stores it if there is one
+                if asterisk_left_perim in num_list:
+                    left_part_number_as_list = [asterisk_left_perim]
+                    next_value_index = n - 2
+                    next_value = row[next_value_index]
+                    while next_value in num_list:
+                        left_part_number_as_list.insert(0, next_value)
+                        next_value_index -= 1
+                        next_value = row[next_value_index]
+                    part_number_list.append("".join(left_part_number_as_list))
+                    # Here, left_part_number_as_list contains the part_number left of * if there is one
+
+                # Checks the right perimeter for a part number and stores it if there is one
+                if asterisk_right_perim in num_list:
+                    right_part_number_as_list = [asterisk_right_perim]
+                    next_value_index = n + 2
+                    next_value = row[next_value_index]
+                    while next_value in num_list:
+                        right_part_number_as_list.append(next_value)
+                        next_value_index += 1
+                        next_value = row[next_value_index]
+                    part_number_list.append("".join(right_part_number_as_list))
+                    # Here, right_part_number_as_list contains the part_number right of * if there is one
+                       
+                # Checks the top perimeter for part number(s) and stores them if there are any
+                # This is the case where there are two adj part numbers in the top perimeter
+                if asterisk_top_perim[0] in num_list and asterisk_top_perim[2] in num_list and asterisk_top_perim[1] == ".":
+                    # This catches the top left part code
+                    top_left_part_number_as_list = [asterisk_top_perim[0]]
+                    next_value_index = n - 2
+                    next_value = padded_schematic[row_index - 1][next_value_index]
+                    while next_value in num_list:
+                        top_left_part_number_as_list.insert(0, next_value)
+                        next_value_index -= 1
+                        next_value = padded_schematic[row_index - 1][next_value_index]
+                    part_number_list.append("".join(top_left_part_number_as_list))                    
+
+                    # This catches the top right part code
+                    top_right_part_number_as_list = [asterisk_top_perim[2]]
+                    next_value_index = n + 2
+                    next_value = padded_schematic[row_index - 1][next_value_index]
+                    while next_value in num_list:
+                        top_right_part_number_as_list.append(next_value)
+                        next_value_index += 1
+                        next_value = padded_schematic[row_index - 1][next_value_index]
+                    part_number_list.append("".join(top_right_part_number_as_list))
+
+  
+                # Now we consider the case where there is only one number in the top perimeter
+                # First the case where the top left of perim in a number (the n-1 index of the upper row)
+                elif asterisk_top_perim[0] in num_list:
+                    top_part_number_as_list = [asterisk_top_perim[0]]
+                    if padded_schematic[row_index - 1][n] in num_list:
+                        top_part_number_as_list.append(padded_schematic[row_index - 1][n])
+                        if padded_schematic[row_index - 1][n+1] in num_list:
+                            top_part_number_as_list.append(padded_schematic[row_index - 1][n+1])
+                    if  padded_schematic[row_index - 1][n-2] in num_list:
+                        top_part_number_as_list.insert(0, padded_schematic[row_index - 1][n-2])
+                        if  padded_schematic[row_index - 1][n-3] in num_list:
+                            top_part_number_as_list.insert(0, padded_schematic[row_index - 1][n-3])
+                    part_number_list.append("".join(top_part_number_as_list))
+
+                elif asterisk_top_perim[1] in num_list:
+                    top_part_number_as_list = [asterisk_top_perim[1]]
+                    if padded_schematic[row_index - 1][n+1] in num_list:
+                        top_part_number_as_list.append(padded_schematic[row_index - 1][n+1])
+                        if padded_schematic[row_index - 1][n+2] in num_list:
+                            top_part_number_as_list.append(padded_schematic[row_index - 1][n+2])
+                    if  padded_schematic[row_index - 1][n-1] in num_list:
+                        top_part_number_as_list.insert(0, padded_schematic[row_index - 1][n-1])
+                        if  padded_schematic[row_index - 1][n-2] in num_list:
+                            top_part_number_as_list.insert(0, padded_schematic[row_index - 1][n-2])
+                    part_number_list.append("".join(top_part_number_as_list))
+
+                elif asterisk_top_perim[2] in num_list:
+                    top_part_number_as_list = [asterisk_top_perim[2]]
+                    if padded_schematic[row_index - 1][n+2] in num_list:
+                        top_part_number_as_list.append(padded_schematic[row_index - 1][n+2])
+                        if padded_schematic[row_index - 1][n+3] in num_list:
+                            top_part_number_as_list.append(padded_schematic[row_index - 1][n+3])
+                    if  padded_schematic[row_index - 1][n] in num_list:
+                        top_part_number_as_list.insert(0, padded_schematic[row_index - 1][n])
+                        if  padded_schematic[row_index - 1][n-1] in num_list:
+                            top_part_number_as_list.insert(0, padded_schematic[row_index - 1][n-1])
+                    part_number_list.append("".join(top_part_number_as_list))
+
+                # Do the same thing for the bottom perimeter:
+                # This is the case where there are two adj part numbers in the bottom perimeter
+                if asterisk_bottom_perim[0] in num_list and asterisk_bottom_perim[2] in num_list and asterisk_bottom_perim[1] == ".":
+                    # This catches the bottom left part code
+                    bottom_left_part_number_as_list = [asterisk_bottom_perim[0]]
+                    next_value_index = n - 2
+                    next_value = padded_schematic[row_index + 1][next_value_index]
+                    while next_value in num_list:
+                        bottom_left_part_number_as_list.insert(0, next_value)
+                        next_value_index -= 1
+                        next_value = padded_schematic[row_index + 1][next_value_index]
+                    part_number_list.append("".join(bottom_left_part_number_as_list))                    
+
+                    # This catches the bottom right part code
+                    bottom_right_part_number_as_list = [asterisk_bottom_perim[2]]
+                    next_value_index = n + 2
+                    next_value = padded_schematic[row_index + 1][next_value_index]
+                    while next_value in num_list:
+                        bottom_right_part_number_as_list.append(next_value)
+                        next_value_index += 1
+                        next_value = padded_schematic[row_index + 1][next_value_index]
+                    part_number_list.append("".join(bottom_right_part_number_as_list))
+
+                # Now we consider the case where there is only one number in the bottom perimeter
+                # First the case where the bottom left of perim in a number (the n-1 index of the upper row)
+                elif asterisk_bottom_perim[0] in num_list:
+                    bottom_part_number_as_list = [asterisk_bottom_perim[0]]
+                    if padded_schematic[row_index + 1][n] in num_list:
+                        bottom_part_number_as_list.append(padded_schematic[row_index + 1][n])
+                        if padded_schematic[row_index + 1][n+1] in num_list:
+                            bottom_part_number_as_list.append(padded_schematic[row_index + 1][n+1])
+                    if  padded_schematic[row_index + 1][n-2] in num_list:
+                        bottom_part_number_as_list.insert(0, padded_schematic[row_index + 1][n-2])
+                        if  padded_schematic[row_index + 1][n-3] in num_list:
+                            bottom_part_number_as_list.insert(0, padded_schematic[row_index + 1][n-3])
+                    part_number_list.append("".join(bottom_part_number_as_list))
+
+                elif asterisk_bottom_perim[1] in num_list:
+                    bottom_part_number_as_list = [asterisk_bottom_perim[1]]
+                    if padded_schematic[row_index + 1][n+1] in num_list:
+                        bottom_part_number_as_list.append(padded_schematic[row_index + 1][n+1])
+                        if padded_schematic[row_index + 1][n+2] in num_list:
+                            bottom_part_number_as_list.append(padded_schematic[row_index + 1][n+2])
+                    if  padded_schematic[row_index + 1][n-1] in num_list:
+                        bottom_part_number_as_list.insert(0, padded_schematic[row_index + 1][n-1])
+                        if  padded_schematic[row_index + 1][n-2] in num_list:
+                            bottom_part_number_as_list.insert(0, padded_schematic[row_index + 1][n-2])
+                    part_number_list.append("".join(bottom_part_number_as_list))
+
+                elif asterisk_bottom_perim[2] in num_list:
+                    bottom_part_number_as_list = [asterisk_bottom_perim[2]]
+                    if padded_schematic[row_index + 1][n+2] in num_list:
+                        bottom_part_number_as_list.append(padded_schematic[row_index + 1][n+2])
+                        if padded_schematic[row_index + 1][n+3] in num_list:
+                            bottom_part_number_as_list.append(padded_schematic[row_index + 1][n+3])
+                    if  padded_schematic[row_index + 1][n] in num_list:
+                        bottom_part_number_as_list.insert(0, padded_schematic[row_index + 1][n])
+                        if  padded_schematic[row_index + 1][n-1] in num_list:
+                            bottom_part_number_as_list.insert(0, padded_schematic[row_index + 1][n-1])
+                    part_number_list.append("".join(bottom_part_number_as_list))#
+                
+                gear_nums_list.append(part_number_list)
+
+        
+            n += 1
+
+    row_index += 1
+
+answer = 0
+for list in gear_nums_list:
+    if len(list) == 2:
+        answer += int(list[0]) * int(list[1])
+print(answer)
+
+
+# DEBUGG:
+# left //
+# right
+# top 2
+# top 1
+# bottom 2
+# bottom 1
+
+
+
+
+# print(ast_count)
+
+
+    #             # Stores first number in part number
+    #             current_num = value
+    #             # Gets index of number after
+    #             next_index = n + 1
+    #             # Gets the next number
+    #             next_value = row[next_index]
+    #             # Will contain all following 
+    #             part_num_list = [value]
+    #             # Breaks loop once the next number is no longer a number
+    #             while next_value in num_list:
+    #                 part_num_list.append(row[next_index])
+    #                 next_index += 1
+    #                 next_value = row[next_index]
+    #             # At end of while loop, part_num_list contains list of all the numbers in the current part number
+                
+    #             # We now want to check around the index numbers of each value in this list for symbols
+    #             # If ANY have symbols around it, the whole number passes and we save number to useful_part_num_list
+    #             num_index = n
+    #             for num in part_num_list:
+    #                 num_perimeter = padded_schematic[row_index - 1][num_index-1:num_index+2] + padded_schematic[row_index][num_index-1:num_index+2] + padded_schematic[row_index + 1][num_index-1:num_index+2]
+    #                 #print(num_perimeter)
+    #                 for character in num_perimeter:
+    #                     if character == "." or character in num_list:
+    #                         is_useful_num = False
+    #                     else:
+    #                         is_useful_num = True
+    #                         break
+    #                 if is_useful_num == True:
+    #                     useful_part_num.append(int("".join(part_num_list)))
+    #                     break
+    #                 num_index += 1
+
+    #             part_nums_in_row.append(part_num_list)
+
+    #         # tracks index of current value
+    #         n += 1
+    
+    # # Tracks index of the row
+    # row_index +=1
+
+
+# DEBUGGING:
+# Padded schematic is in list form as it should be
+# Asterisk identifier is finding all asterisks
