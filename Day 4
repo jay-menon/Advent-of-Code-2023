@@ -1,0 +1,76 @@
+# This code is part of the Advent of Code 2023 challenge.
+# Day 4: Scratchcards
+
+with open("game_cards.txt") as game_cards:
+    game_cards = game_cards.readlines()
+
+# PART 1 /////////////////////////////////////////////
+
+# Cleaning raw data to put into a 2D zipped list of form = [(ID, win_num, num_I_have), (ID, win_num, num_I_have)...]
+cleaned_num_I_have_list = []
+cleaned_winning_nums_list = []
+for game_card in game_cards:
+    ID_nums_list = (game_card.strip("\n")).split(":")
+    nums_list = ID_nums_list[1].split("|")
+    num_I_have = nums_list[0].split(" ")
+    winning_nums = nums_list[1].split(" ")
+    
+    cleaned_num_I_have = []
+    for num in num_I_have:
+        if num != "":
+            cleaned_num_I_have.append(num)
+    cleaned_num_I_have_list.append(cleaned_num_I_have)
+
+    cleaned_winning_nums = []
+    for num in winning_nums:
+        if num != "":
+            cleaned_winning_nums.append(num)
+    cleaned_winning_nums_list.append(cleaned_winning_nums)
+
+zip_game_card_info = list(zip(range(1,187),cleaned_num_I_have_list,cleaned_winning_nums_list))
+
+# Loop iterates through the 
+total_points = 0
+for game in zip_game_card_info:
+    winning_num_count = 0
+    for num in game[1]:
+        if num in game[2]:
+            winning_num_count += 1
+    if winning_num_count == 0:
+        game_points = 0
+    else:
+        game_points = 2 ** (winning_num_count - 1)
+    total_points += game_points
+
+print(total_points)
+
+# PART 2 /////////////////////////////////////////////
+
+def next_scs_finder(all_data, card_ID):
+    num_win_num = 0
+    for value in all_data[card_ID - 1][1]:
+        if value in all_data[card_ID - 1][2]:
+            num_win_num += 1
+    if num_win_num == 0:
+        new_sc_list = []
+    else:
+        new_sc_list = list(range(card_ID + 1, card_ID + num_win_num + 1))
+    return new_sc_list
+
+# print(next_scs_finder(zip_game_card_info, 1))
+
+sc_count = 0
+for ID in list(range(1,187)):
+    sc_input = [ID]
+    while sc_input != []:
+        sc_input_from_one_gen = []
+        for i in sc_input:
+            sc_count += 1
+            new_sc_list_from_one_sc = next_scs_finder(zip_game_card_info, i)
+            sc_input_from_one_gen += new_sc_list_from_one_sc
+        sc_input = sc_input_from_one_gen
+
+print("Still:")
+print(sc_count)
+
+
