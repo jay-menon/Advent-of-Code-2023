@@ -1,0 +1,89 @@
+# This code is part of the Advent of Code 2023 challenge.
+# Day 8: Haunted Wasteland
+
+with open("Node_info.txt") as node_info:
+    nodes_raw = node_info.readlines()
+
+# Cleaning puzzle input to be in required node_dict format (stated below)
+nodes_clean = [i.strip("\n") for i in nodes_raw]
+direction_list = nodes_clean[0]
+node_dict = {}
+starting_nodes = []
+for node_data in nodes_clean[2:]:
+    dict_key = node_data[:3]
+    dict_value = [node_data[7:10], node_data[12:15]]
+    node_dict[dict_key] = dict_value
+    # Taking nodes that end in A for starting_node list for Part 2
+    if dict_key[2] == "A":
+        starting_nodes.append(dict_key)
+
+
+# //////////////// PART 1 ////////////////
+
+# Each node in dictionary formatted formatted:
+# Node_dict = {"Current node": ["Left node", "Right node"], ...}
+# direction_list is a string as such: "LLRLLLRLLRRRRLL"
+# for loop follows direction until we reach the ZZZ node and counts each step made
+current_node = "AAA"
+step_count = 0
+while current_node != "ZZZ":
+    for direction in direction_list:
+        node_options = node_dict[current_node]
+        if direction == "L":
+            next_node = node_options[0]
+        elif direction == "R":
+            next_node = node_options[1]
+        # Making the decision
+        current_node = next_node
+        step_count += 1
+print("PART 1 Answer: " + str(step_count))
+
+# //////////////// PART 2 ////////////////
+
+# Hardcoded Part 2 and realised it takes too long to run
+# Will revisit later after learning more efficient algorithms
+
+# node_last_letters = ""
+# for node in starting_nodes:
+#     node_last_letters += node[-1]
+# starting_nodes.append(node_last_letters)
+
+
+# current_nodes = starting_nodes
+# step_count_pt2 = 0
+# while current_nodes[-1] != "Z" * len(starting_nodes):
+#     for direction in direction_list:
+#         next_nodes = []
+#         for node in current_nodes[:-1]:
+#             node_options = node_dict[node]
+#             if direction == "L":
+#                 next_node = node_options[0]
+#             elif direction == "R":
+#                 next_node = node_options[1]
+#             next_nodes.append(next_node)
+#         current_nodes = next_nodes
+#         step_count_pt2 += 1
+
+#         node_last_letters = ""
+#         for node in current_nodes:
+#             node_last_letters += node[-1]
+#         current_nodes.append(node_last_letters)
+#     print(step_count_pt2)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

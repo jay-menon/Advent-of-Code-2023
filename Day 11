@@ -1,0 +1,127 @@
+# This code is part of the Advent of Code 2023 challenge.
+# Day 11: Cosmic Expansion
+
+# ///////// CLEANING PUZZLE INPUT /////////
+
+with open("Galaxy_map.txt") as galaxy_map_file:
+    galaxy_map_raw = galaxy_map_file.readlines()
+
+galaxy_map_clean = [i.strip("\n") for i in galaxy_map_raw]
+
+# ////////////////// PART 1/2 //////////////////
+
+# Takes non-expanded map puzzle input in row form
+# Returns map with all empty rows/columns replaced with a row/column of "i"s
+def map_reformat(map):
+    # Replaces empty rows with a row pf "i"s
+    reformat = list(map)
+    ref_line_idx = 0
+    for line in map:
+        if line == "." * len(line):
+            reformat.insert(ref_line_idx, "i"*len(line))
+            reformat.remove(line)
+        ref_line_idx += 1
+
+    # Preparing to do the same for empty columns
+    # Preallocates number of columns expected in column list
+    column_list = []
+    for i in range(len(reformat[0])):
+        column_list.append([])
+
+    # Fills up each sublist with column values
+    for line in reformat:
+        val_idx = 0
+        for value in line:
+            column_list[val_idx].append(value)
+            val_idx += 1
+    
+    # Same loop as before to replace each empty column with a column of "i"s
+    reformat_2 = list(column_list)
+    ref_2_line_idx = 0
+    for line in column_list:
+        if line.count("#") == 0:
+            reformat_2.insert(ref_2_line_idx, "i"*len(line))
+            reformat_2.remove(line)
+        ref_2_line_idx += 1
+
+    # Reconstruct map in its rows from new column list
+    # Preallocation, same as before
+    row_list = []
+    column_list = []
+    for i in range(len(reformat_2[0])):
+        row_list.append([])
+    # Fills up each, as before
+    for line in reformat_2:
+        val_idx = 0
+        str = ""
+        for value in line:
+            row_list[val_idx].append(value)
+            str += value
+            val_idx += 1
+        column_list.append(str)
+    # Puts it back into string form
+    reformat_3 = []
+    for line in row_list:
+        str = ""
+        for val in line:
+            str += val
+        reformat_3.append(str)
+    row_list = reformat_3
+        
+    return row_list, column_list
+
+# Takes a map input (in row form) and outputs the non-expanded positions of all galaxies
+def galaxy_pos_finder(map):
+    galaxy_pos_list = []
+    line_idx = 0
+    for line in map:
+        val_idx = 0
+        for val in line:
+            if val == "#":
+                galaxy_pos = [line_idx, val_idx]
+                galaxy_pos_list.append(galaxy_pos)
+            val_idx += 1
+        line_idx += 1
+    return galaxy_pos_list
+
+# Takes INPUTS: positions of galaxies, row/col lists with "i"s substituted, i expansion factor
+# OUTPUTS the sum shortest distance between all galaxies
+def short_dist_calc(pos_list, row_list, column_list, i_value):
+    sum_dist = 0
+    new_galaxy_list = list(pos_list)
+    while new_galaxy_list != []:
+        for galaxy in new_galaxy_list[1:]:
+            # make short_dist equal to distance between new_galaxy_list[0] and galaxy
+            start_pos = new_galaxy_list[0]
+            dest_pos = galaxy
+            row_idxs = [start_pos[0], dest_pos[0]]
+            row_idxs.sort()
+            col_idxs = [start_pos[1], dest_pos[1]]
+            col_idxs.sort()
+            # For each galaxy, will travel horizontal first, then vertical
+            # Horizontal string:
+            horz_str = row_list[start_pos[0]][col_idxs[0]: col_idxs[1] + 1]
+            # Vertical string
+            vert_str = column_list[dest_pos[1]][row_idxs[0]: row_idxs[1] + 1]
+            # sum_str contains whole path ~ remember that the corner tile linking the horz and vert strips will repeat in this string
+            sum_str = horz_str + vert_str
+            short_dist = 0
+            for val in sum_str:
+                if val == "i":
+                    short_dist += i_value
+                else:
+                    short_dist += 1
+            # Subtract 2 ~ 1 for the starting point and 1 for the duplicate value in sum_str from the single value overlap in the horz and vert strings
+            short_dist -= 2
+
+            sum_dist += short_dist
+        new_galaxy_list.remove(new_galaxy_list[0])
+    
+    return sum_dist
+
+[row_list, column_list] = map_reformat(galaxy_map_clean)
+galaxy_pos_list = galaxy_pos_finder(row_list)
+part1_answer = short_dist_calc(galaxy_pos_list, row_list, column_list, 2)
+part2_answer = short_dist_calc(galaxy_pos_list, row_list, column_list, 1000000)
+print("PART 1 // Sum of the shortest distances between all galaxy pairs: " + str(part1_answer))
+print("PART 2 // Sum of the shortest distances between all galaxy pairs: " + str(part2_answer))

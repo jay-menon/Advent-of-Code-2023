@@ -1,0 +1,163 @@
+# This code is part of the Advent of Code 2023 challenge.
+# Day 14: Parabolic Reflector Dish
+
+# ///////// CLEANING PUZZLE INPUT /////////
+
+with open("Load_map.txt") as load_map_file:
+    load_map_raw = load_map_file.readlines()
+load_map_clean = [line.strip("\n") for line in load_map_raw]
+
+row_list = list(load_map_clean)
+
+# Rearrange row_list to get column_list
+# Preallocate column_list sublists to each column
+reformat = []
+for i in range(len(row_list[0])):
+    reformat.append([])
+
+# Fills up each sublist with column values
+for line in row_list:
+    val_idx = 0
+    for value in line:
+        reformat[val_idx].insert(0, value)
+        val_idx += 1
+
+# reformat contains column info but need to format into continuous string
+column_list = []
+for line in reformat:
+    string = ""
+    for val in line:
+        string = val + string
+    column_list.append(string)
+
+# row_list and column_list are ready for use in puzzle solving
+
+# ////////////////// PART 1 //////////////////
+
+# Takes a column input and simulates the rock rolling, returning the final state of the column
+def rock_roll(col):
+    # Split the column into segments divided by square boulders
+    segments = col.split("#")
+    # Process each segment to simulate rock rolling
+    processed_segments = []
+    for segment in segments:
+        processed_segment = str(segment)
+        if "O" in segment:
+            O_string = "O" * segment.count("O")
+            ash_string = "." * segment.count(".")
+            processed_segment = O_string + ash_string
+        processed_segments.append(processed_segment)
+    # Join segments back together, delimited by "#", for processed column
+    processed_col = "#".join(processed_segments)
+
+    return processed_col
+
+# Calculates the load score from a single processed column
+def load_calc(proc_col):
+    sum_score = 0
+    load_score = len(proc_col)
+    for val in proc_col:
+        if val == "O":
+            sum_score += load_score
+        load_score -= 1
+    return sum_score
+
+load_score = 0
+for col in column_list:
+    proc_col = rock_roll(col)
+    score = load_calc(proc_col)
+    load_score += score
+print("PART 1 /// Load score: " + str(load_score))
+
+# ////////////////// PART 2 //////////////////
+
+# After the rolling has been simulated, this function returns the column list (input) for the next rotation
+def map_rotator(prev_proc_col_list):
+
+
+    col_list = list(prev_proc_col_list)
+    reformat = []
+    for i in range(len(col_list[0])):
+        reformat.append([])
+
+    # Fills up each sublist with column values
+    for line in col_list:
+        val_idx = 0
+        for value in line:
+            reformat[val_idx].append(value)
+            val_idx += 1
+
+    # reformat contains column info but need to format into continuous string
+    rev_row_list = []
+    for line in reformat:
+        string = ""
+        for val in line:
+            string += val
+        rev_row_list.append(string)
+    rev_row_list.reverse()
+
+    return rev_row_list
+
+# Loop simulates rock rolling for start orientation and then rotates the map for the next simulation
+# After 4 rotations, the cycle_count gets incremented
+# Also the loop identifies if the map ever returns to a previous arrangement after x number of cycles (indicating periodicity)
+cycle_count = 0
+rotations = 0
+current_col_list = list(column_list)
+north_orientations = [list(column_list)]
+periodic = False
+while cycle_count < 10**9 and periodic == False:
+    next_col_list = []
+    for col in current_col_list:
+        proc_col = rock_roll(col)
+        next_col_list.append(proc_col)
+    next_col_list = map_rotator(next_col_list)
+    if rotations != 3:
+        rotations += 1
+    elif rotations == 3:
+        rotations = 0
+        cycle_count += 1
+    
+        if next_col_list not in north_orientations:
+            north_orientations.append(list(next_col_list))
+        else:
+            print("PERIODIC PATTERN FOUND")
+            north_orientations.append(list(next_col_list))
+            periodic = True
+
+    current_col_list = next_col_list
+
+# Extracting all information about the periodic pattern to extrapolate to the billionth cycle
+print()
+print("Cycle count before repeat identified: " + str(cycle_count))
+print("First repeated map index: " + str(north_orientations.index(current_col_list)))
+cycles_before_period = north_orientations.index(current_col_list)
+cycle_period = cycle_count - north_orientations.index(current_col_list)
+billionth_cycle_period_pos = (10**9 - cycles_before_period) % cycle_period
+print("Cycle period: "+ str(cycle_period))
+print("Billionth cycle pos in period: " + str(billionth_cycle_period_pos))
+print()
+
+# Finds the billionth cycle output from above info
+cycle_count = 0
+rotations = 0
+while cycle_count < billionth_cycle_period_pos:
+    next_col_list = []
+    for col in current_col_list:
+        proc_col = rock_roll(col)
+        next_col_list.append(proc_col)
+    next_col_list = map_rotator(next_col_list)
+    if rotations != 3:
+        rotations += 1
+    elif rotations == 3:
+        rotations = 0
+        cycle_count += 1   
+    current_col_list = next_col_list
+
+# Calculates load score after one billion cycles
+load_score = 0
+for col in current_col_list:
+    score = load_calc(col)
+    load_score += score
+print("PART 2 /// Load score: " + str(load_score))
+

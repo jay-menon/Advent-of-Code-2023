@@ -1,0 +1,92 @@
+# This code is part of the Advent of Code 2023 challenge.
+# Day 15: Lens Library
+
+# ///////// CLEANING PUZZLE INPUT /////////
+
+# Clean the ASCII info to make a dictionary mapping each glyph to an ASCII DEC number
+with open("ASCII_info.txt") as ASCII_info_file:
+    ASCII_info_raw = ASCII_info_file.readlines()
+ASCII_info_strip = [line.strip("\n") for line in ASCII_info_raw]
+ASCII_info_clean = [line.split("\t") for line in ASCII_info_strip]
+
+ASCII_dict = {}
+for glyph in ASCII_info_clean:
+    ASCII_dict[glyph[1]] = int(glyph[0])
+
+# Clean the puzzle input:
+with open("Init_manual.txt") as manual_file:
+    manual_raw = manual_file.readlines()
+manual_clean = manual_raw[0].split(",")
+
+# ////////////////// PART 1 //////////////////
+
+# Takes a code and runs it through the HASH algorithm (which uses the ASCII dict input)
+def HASH_calc(code, dict):
+    current_val = 0
+    for glyph in code:
+        asc_num = dict[glyph]
+        current_val += asc_num
+        current_val *= 17
+        current_val %= 256
+    return current_val
+
+# Sums all the HASH scores across all codes in the manual
+sum_score = 0
+for code in manual_clean:
+    score = HASH_calc(code, ASCII_dict)
+    sum_score += score
+print("PART 1 /// HASH sum: " + str(sum_score))
+
+# ////////////////// PART 2 //////////////////
+
+# box_dict stores abd updates what's happening in each box:
+# i.e. box_dict = {0: [["cm", 1], ["dn", 4]], 1: ... } for the status of box 0 and box 1
+# The value for every box key starts as an empty list
+box_dict = {}
+for i in range(256):
+    box_dict[i] = []
+
+for code in manual_clean:
+    # Determine whether adding or removing lens
+    if "=" in code:
+        # Split the code to ["box_code_str", "lens_length_str"]
+        split_code = code.split("=")
+        # Identify box of relevance
+        box = HASH_calc(split_code[0], ASCII_dict)
+        # Add code and foc length to box key in dictionary
+        # Check if that box code is already present in that box: if it is, replace the present one with the new
+        replaced = False
+        for lens in list(box_dict[box]):
+            if lens[0] == split_code[0]:
+                box_dict[box].insert(box_dict[box].index(lens), [split_code[0], int(split_code[1])])
+                box_dict[box].remove(lens)
+                replaced = True
+                
+        # If it is not already present, add the new lens to the list
+        if replaced == False:
+            box_dict[box].append([split_code[0], int(split_code[1])])
+
+    elif "-" in code:
+        # Split the code to ["box_code_str", ""]
+        split_code = code.split("-")
+        # Identify box of relevance
+        box = HASH_calc(split_code[0], ASCII_dict)
+        # Remove that to box key in dictionary
+        for lens in list(box_dict[box]):
+            if lens[0] == split_code[0]:
+                box_dict[box].remove(lens)
+
+sum_score = 0
+box_pos = 1
+# Calculate sum score across all lenses:
+for key in box_dict:
+    lens_list = box_dict[key]
+    lens_pos = 1
+    for lens in lens_list:
+        score = box_pos * lens_pos * lens[1]
+        sum_score += score
+        lens_pos += 1
+    box_pos += 1
+
+print("PART 2 /// Lens position sum: " + str(sum_score))
+

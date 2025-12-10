@@ -1,0 +1,174 @@
+
+# This code is part of the Advent of Code 2023 challenge.
+# Day 5: If You Give A Seed A Fertilizer
+
+# Opens .txt file and readlines creates list where each line in the file is an item
+with open("almanac.txt") as almanac_file:
+    almanac_raw = almanac_file.readlines()
+# Strips the newline notation from each item
+almanac_array = [i.strip("\n") for i in almanac_raw]
+
+# //////////////////////////////////// DATA CLEANING ////////////////////////////////////
+
+# Creates seed list by separating by the spaces and coverting from string to int
+seeds_raw = almanac_array[0]
+seed_str_list = seeds_raw.split(" ")
+seed_list = []
+for i in seed_str_list:
+    seed_list.append(int(i))
+
+# Creates maps list formatted as such:
+# maps = [MAP0, MAP1, ...]
+# where MAP0 = [[x0,y0,z0], [x1,y1,z1], ...]
+maps_raw = almanac_array[2:]
+maps_raw.append("")
+maps = []
+current_map = []
+for i in maps_raw:
+    if i == "":
+        maps.append(current_map)
+        current_map = []
+    else:
+        split_list = i.split(" ")
+        nested_list = []
+        for string in split_list:
+            nested_list.append(int(string))
+        current_map.append(nested_list)
+
+# //////////////////////////////////// PART 1 ////////////////////////////////////
+
+# Takes a map and a seed as input, gives the ouput after mapping
+def map_processor(map, input):
+    for key in map:
+        [output_start, input_start, range] = key
+        if input >= input_start and input < (input_start + range):
+            diff = input - input_start
+            output = output_start + diff
+            return output
+        else:
+            continue
+    return input
+
+# Runs each seed through all maps consecutively and appends final output to output_list
+output_list = []
+for seed in seed_list:
+    input = seed
+    for map in maps:
+        output = map_processor(map, input)
+        input = output
+    output_list.append(output)
+
+# Gives answer to Part 1
+print("PART 1 Answer: " + str(min(output_list)))
+
+# Combines map_processor and loop to make function that takes a seed and a series of mappings to give the ouput
+def seed_to_loc(seed, map_catalogue):
+    input = seed
+    for map in map_catalogue:
+        for key in map:
+            [output_start, input_start, range] = key
+            if input >= input_start and input < (input_start + range):
+                diff = input - input_start
+                output = output_start + diff
+                input = output
+                break
+    return output
+
+# Gives answer to Part 1 using seed_to_loc function
+loc_result_list = []
+for seed in seed_list:
+    loc_result_list.append(seed_to_loc(seed, maps))
+
+# //////////////////////////////////// PART 2 ////////////////////////////////////
+
+# Create seed range list which contains paired nested lists of starting value and range width
+seed_range_list = []
+for i in range(0, len(seed_list), 2):
+    seed_range_list.append(seed_list[i:i+2])
+
+# Creates map catalogue ordered in reverse to take us from a given location value to the corresponding seed
+# NEED to use list() here to create copy of maps, otherwise .reverse() will reverse the original too
+reverse_maps = list(maps)
+reverse_maps.reverse()
+
+# Define function that checks if seed val is in a range defined by seed range list
+def seed_checker(test_val, range_list):
+    seed_exists = False
+    for range in range_list:
+        if test_val >= range[0] and test_val < range[0] + range[1]:
+            seed_exists = True
+            break
+        else:
+            continue
+    return seed_exists
+
+# Define function that takes a location val and traces it back to a seed val
+def loc_to_seed(loc_val, map_catalogue):
+    output = loc_val
+    for map in map_catalogue:
+        for key in map:
+            [output_start, input_start, range] = key
+            if output >= output_start and output < (output_start + range):
+                diff = output - output_start
+                input = input_start + diff
+                output = input
+                break
+            else:
+                continue
+    return input
+
+# Order the location mapper by location value, smallest to largest
+def orderFunc1(i):
+    return i[1]
+def orderFunc2(i):
+    return i[2]
+location_map = list(maps[-1])
+location_map.sort(key=orderFunc1)
+# range_sort = list(maps[-1])
+# range_sort.sort(key=orderFunc2)
+# print(range_sort)
+
+
+# Start at lowest loc size key in map, check if it corresponds to a seed
+# If not, increment up the loc size and repeat until found seed or no longer in range
+# If no longer in range, try next key in the map and repeat
+increment = 100000
+lowest_loc = False
+seed_exists = False
+for key in location_map:
+    loc = key[1]
+    width = key[2]
+    while loc < loc + width:
+        seed = loc_to_seed(loc, reverse_maps)
+        seed_exists = seed_checker(seed, seed_range_list)
+        if seed_exists is True:
+            lowest_loc = loc
+            break
+        else:
+            loc += increment  
+    if seed_exists == True:
+        break
+
+
+# After found lowest_loc, want to zone in on actual smallest loc value by lowering increments gradually
+while increment >= 1:
+    loc = lowest_loc - increment
+    increment = increment / 10
+    seed_exists = False
+
+    while seed_exists is False:
+        seed = loc_to_seed(loc, reverse_maps)
+        seed_exists = seed_checker(seed, seed_range_list)
+        if seed_exists is True:
+            lowest_loc = loc
+        else:
+            loc += increment
+
+# Gives answer to Part 2
+print("PART 2 Answer: " + str(int(lowest_loc)))
+
+#/////////////////////// TROUBLESHOOT /////////////////////// 
+# SEED CHECKER WORKS GOOD
+# reverse_maps is now ordered in reverse without affecting maps
+# seed_to_loc, loc_to_seed and original solver which gave right answer now all give same results
+# location_map is ordered from smallest loc value to largest

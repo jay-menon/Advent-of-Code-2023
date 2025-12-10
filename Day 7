@@ -1,0 +1,174 @@
+# This code is part of the Advent of Code 2023 challenge.
+# Day 7: Camel Cards
+
+# //////////////// Cleaning Data ////////////////
+
+with open("Hand_info.txt") as hand_info:
+    raw_hand_data = hand_info.readlines()
+
+# hands_list = [["hand_str0", "bid_str0"], ["hand_str1", "bid_str1"], ...]
+hand_data_clean = [i.strip("\n") for i in raw_hand_data]
+hands_list = [i.split(" ") for i in hand_data_clean]
+card_val_dict = {"T": 10, "J": 11, "Q": 12, "K": 13, "A": 14}
+
+# //////////////// Part 1 ////////////////
+
+# This function gives the score of the hand (how good it is)
+# Also outputs integer representation of each card in hand to compare when two hands are the same
+# Returns [hand_score, int_card_vals, bid] for a given hand
+def hand_eval(hand, bid):
+    # Turn letter values to number scores and convert from str to int list
+    int_hand = []
+    for card in hand:
+        if card in card_val_dict:
+            int_card_val = card_val_dict[card]
+            int_hand.append(int_card_val)
+        else:
+            int_hand.append(int(card))
+
+    # List of all different values in the hand (each only appearing once)
+    # This will help solve the "gotcha"
+    diff_values = []
+    for i in int_hand:
+        if i not in diff_values:
+            diff_values.append(i)
+
+    # Figure out what type the hand is
+    # Hand scores = {5oK: 10, 4oK: 8, FH: 7, 3oK: 5, 2P: 4, P: 2, HC: 0}
+    hand_score = 0
+    for card in diff_values:
+        card_count = int_hand.count(card)
+        if card_count == 5:
+            hand_score += 10
+        elif card_count == 4:
+            hand_score += 8
+        elif card_count == 3:
+            hand_score += 5
+        elif card_count == 2:
+            hand_score += 2
+
+        # Removes all later instances of that card so they are not counted more than once
+        # ** This caused a gotcha which skipped over certain instances of 2 pairs
+        # for i in range(card_count):
+        #     temp_hand.remove(card)
+        
+    int_hand.insert(0, hand_score)
+    int_hand.append(int(bid))
+    return int_hand
+
+# This loop evaluates runs every hand in hands_list through the function above
+eval_hands_list = []
+for hand in hands_list:
+    item = hand_eval(hand[0], hand[1])
+    eval_hands_list.append(item)
+
+# This sort first sorts by hand_score
+# If hand score is the same, it directly compares each card in each hand and orders by that
+# Finally, order is reversed so the weakest card is rank #1
+eval_hands_list.sort()
+eval_hands_list.__reversed__()
+
+# This multiplies the bid by the respective rank to find the winnings from a hand
+# The loops sums the winnings from every hand in hands_list
+sum_winnings = 0
+for rank in range(1, len(eval_hands_list) + 1):
+    sum_winnings += eval_hands_list[rank-1][-1] * rank
+print("PART 1 Answer: " + str(sum_winnings))
+
+# //////////////// Part 2 ////////////////
+
+def hand_eval2(hand, bid):
+    # Turn letter values to number scores and convert from str to int list
+    int_hand = []
+    for card in hand:
+        if card in card_val_dict:
+            int_card_val = card_val_dict[card]
+            int_hand.append(int_card_val)
+        else:
+            int_hand.append(int(card))
+
+    # List of all different values in the hand (each only appearing once)
+    # This will help solve the "gotcha"
+    diff_values = []
+    for i in int_hand:
+        if i not in diff_values:
+            diff_values.append(i)
+
+    # Convert J values to best card
+    # Function for sort to order by last index of nested list
+    def IndexOrder(sublist):
+        return sublist[-1]
+    # Counts number of Js and number of everything else
+    # Converts each J to card of highest freq
+    if 11 in diff_values and diff_values is not [11]:
+        J_count = int_hand.count(11)
+        card_count = []
+        temp_list = list(int_hand)
+        for i in range(J_count):
+            temp_list.remove(11)
+        for i in diff_values:
+            card_count.append([i, temp_list.count(i)])
+        # This sort will create nested ordered list which puts the highest, modal card first
+        card_count.sort(key=IndexOrder,reverse=True)
+        high_card = card_count[0][0]
+        # Replaces all J with high card
+        diff_type_comp = list(int_hand)
+        same_type_comp = list(int_hand)
+        for i in range(J_count):
+            idx = diff_type_comp.index(11)
+            diff_type_comp.remove(11)
+            same_type_comp.remove(11)
+            diff_type_comp.insert(idx, high_card)
+            same_type_comp.insert(idx, 1)
+    elif diff_values is [11]:
+        diff_type_comp = [1, 1, 1, 1, 1]
+        same_type_comp = diff_type_comp
+    else:
+        diff_type_comp = int_hand
+        same_type_comp = int_hand
+
+    # Figure out what type the hand is with the J enhancing the hand
+    # Hand scores = {5oK: 10, 4oK: 8, FH: 7, 3oK: 5, 2P: 4, P: 2, HC: 0}
+    hand_score = 0
+    # Redoing diff_values list without the J values
+    diff_values = []
+    for i in diff_type_comp:
+        if i not in diff_values:
+            diff_values.append(i)
+
+    for card in diff_values:
+        card_count = diff_type_comp.count(card)
+        if card_count == 5:
+            hand_score += 10
+        elif card_count == 4:
+            hand_score += 8
+        elif card_count == 3:
+            hand_score += 5
+        elif card_count == 2:
+            hand_score += 2
+
+    same_type_comp.insert(0, hand_score)
+    same_type_comp.append(int(bid))
+    return same_type_comp
+
+# This loop evaluates runs every hand in hands_list through the function above
+eval_hands_list = []
+for hand in hands_list:
+    item = hand_eval2(hand[0], hand[1])
+    eval_hands_list.append(item)
+
+# This sort first sorts by hand_score
+# If hand score is the same, it directly compares each card in each hand and orders by that
+# Finally, order is reversed so the weakest card is rank #1
+eval_hands_list.sort()
+eval_hands_list.__reversed__()
+
+# This multiplies the bid by the respective rank to find the winnings from a hand
+# The loops sums the winnings from every hand in hands_list
+sum_winnings = 0
+for rank in range(1, 1 + len(eval_hands_list)):
+    sum_winnings += eval_hands_list[rank-1][-1] * rank
+
+print("PART 2 Answer: " + str(sum_winnings))
+
+

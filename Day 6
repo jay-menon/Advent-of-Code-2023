@@ -1,0 +1,76 @@
+
+# This code is part of the Advent of Code 2023 challenge.
+# Day 6: Wait For It
+
+import sys
+
+# Puzzle input:
+# Each race is formatted as [Time, Distance]
+races = [[61,643], [70,1184], [90,1362], [66,1041]]
+[race1, race2, race3, race4] = races
+
+# //////////////////// Part 1 ////////////////////
+
+# Each race is a question of optimising the following equation:
+# Distance = (Time - t_p) x t_p where t_p is Time Pressed
+    # Same as (-1)t_p^2 + (Time)t_p + (-Distance) = 0
+    # a = -1 /// b = Time /// c = -Distance
+# After solving the negative quadratic, find all integer values between the solutions
+# Multiply solutions together for answer to Part 1
+
+# Function takes the Time conditions and Record Distance for a race as inputs
+# Function outputs a list of acceptable integer values for "Time Pressed" that will beat the Record Distance
+def int_quad_solv(race):
+    # Solves Quadratic
+    a = -1
+    b = race[0]
+    c = -1 * race[1]
+    sol1 = (-b + (b**2 - 4*a*c)**(1/2) ) / (2*a)
+    sol2 = (-b - (b**2 - 4*a*c)**(1/2) ) / (2*a)
+
+    # Truncates solutions to integer values
+    int_sol1 = int(sol1)
+    int_sol2 = int(sol2)
+
+    # Gets rid pf Time values that would draw with the current record
+    if int_sol2 == sol2:
+        int_sol2 -= 1
+    # Turns into integer list of race-winning times
+    int_list = list(range(int_sol1 + 1, int_sol2 + 1))
+    return int_list
+
+# Finds number of ways to win in a given race
+# Puts value into length_list
+length_list = []
+for race in races:
+    tp_list = int_quad_solv(race)
+    length_list.append(len(tp_list))
+
+# Multiplies all values in length_list together:
+product = 1
+for i in length_list:
+    product *= i
+print("PART 1 Answer: " + str(product))
+
+# //////////////////// Part 2 ////////////////////
+
+# Was able to reuse previous function for this longer race
+new_race = [61709066,643118413621041]
+winning_list = int_quad_solv(new_race)
+print("PART 2 Answer: " + str(len(winning_list)))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

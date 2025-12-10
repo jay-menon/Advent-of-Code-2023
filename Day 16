@@ -1,0 +1,275 @@
+# This code is part of the Advent of Code 2023 challenge.
+# Day 16: The Floor Will Be Lava
+
+# ///////// CLEANING PUZZLE INPUT /////////
+
+# All backslashes from original puzzle input have been replaced with "0" as "\" is used as an escape character
+with open("Mirror_map.txt") as mirror_map_file:
+    mirror_map_raw = mirror_map_file.readlines()
+mirror_map_clean = [line.strip("\n") for line in mirror_map_raw]
+
+row_list = list(mirror_map_clean)
+
+# Rearrange row_list to get column_list
+# Preallocate column_list sublists to each column
+reformat = []
+for i in range(len(row_list[0])):
+    reformat.append([])
+
+# Fills up each sublist with column values
+for line in row_list:
+    val_idx = 0
+    for value in line:
+        reformat[val_idx].insert(0, value)
+        val_idx += 1
+
+# reformat contains column info but need to format into continuous string
+column_list = []
+for line in reformat:
+    string = ""
+    for val in line:
+        string = val + string
+    column_list.append(string)
+
+# row_list and column_list are ready for use in puzzle solving
+
+vert_feat_list = ["/", "0", "-"]
+horz_feat_list = ["/", "0", "|"]
+
+# ////////////////// PART 1 //////////////////
+
+def laser_path(start_pos, start_dir, row_list, col_list):
+    vert_feat_list = ["/", "0", "-"]
+    horz_feat_list = ["/", "0", "|"]
+    tiles_hit = [start_pos]
+    current_pos = start_pos
+    current_dir = start_dir
+    perp_splitter_met = False
+    feat_hit = False
+    hit_edge = False
+    feat = "empty"
+
+    # This section takes us from current_pos to either a feature or the edge of the map
+    if current_dir == "up" or current_dir == "down":
+        if current_dir == "up":
+            current_path = col_list[current_pos[1]][:current_pos[0]]
+            # current_path needs to be reversed for up/left directions
+            current_path = "".join(reversed(current_path))
+        else:
+            current_path = col_list[current_pos[1]][current_pos[0] + 1:]
+        # If clause for if current_path is empty because start_pos leads directly off the map
+        if current_path == "":
+            hit_edge = True
+            return current_pos, current_dir, tiles_hit, feat, [feat_hit, perp_splitter_met, hit_edge]
+
+        step = 1
+        for val in current_path:
+            if current_dir == "up":
+                trav_pos = [current_pos[0] - step, current_pos[1]]
+            else:
+                trav_pos = [current_pos[0] + step, current_pos[1]]
+            tiles_hit.append(trav_pos)
+        
+            if val in vert_feat_list:
+                feat_hit = True
+                feat = val
+                if val == "-":
+                    perp_splitter_met = True
+                return trav_pos, current_dir, tiles_hit, feat, [feat_hit, perp_splitter_met, hit_edge]
+        
+            if current_dir == "up" and trav_pos == [0, current_pos[1]]:
+                hit_edge = True
+            elif current_dir == "down" and trav_pos == [len(row_list[0])-1, current_pos[1]]:
+                hit_edge = True
+            step += 1
+            
+        return trav_pos, current_dir, tiles_hit, feat, [feat_hit, perp_splitter_met, hit_edge]
+
+
+    # Same as above but for left and right directions
+    if current_dir == "left" or current_dir == "right":
+        if current_dir == "left":
+            current_path = row_list[current_pos[0]][:current_pos[1]]
+            # current_path needs to be reversed for up/left directions
+            current_path = "".join(reversed(current_path))
+        else:
+            current_path = row_list[current_pos[0]][current_pos[1] + 1:]
+        
+        # If clause for if current_path is empty because start_pos leads directly off the map
+        if current_path == "":
+            hit_edge = True
+            return current_pos, current_dir, tiles_hit, feat, [feat_hit, perp_splitter_met, hit_edge]
+
+        step = 1
+        for val in current_path:
+            if current_dir == "left":
+                trav_pos = [current_pos[0], current_pos[1] - step]
+            else:
+                trav_pos = [current_pos[0], current_pos[1] + step]
+            tiles_hit.append(trav_pos)
+            if val in horz_feat_list:
+                feat_hit = True
+                feat = val
+                if val == "|":
+                    perp_splitter_met = True
+                return trav_pos, current_dir, tiles_hit, feat, [feat_hit, perp_splitter_met, hit_edge]
+            
+            if current_dir == "left" and trav_pos == [current_pos[0], 0]:
+                hit_edge = True
+            elif current_dir == "right" and trav_pos == [current_pos[0], len(col_list[0])-1]:
+                hit_edge = True
+            step += 1
+            #print([[current_pos[0], len(col_list[0])], trav_pos, current_dir])
+        return trav_pos, current_dir, tiles_hit, feat, [feat_hit, perp_splitter_met, hit_edge]
+
+# Takes an incident direction upon a feature and gives the starting input for the next beam
+def next_inputs_finder(feat, feat_pos, inc_dir):
+    input_pos = feat_pos
+    # If feature is a splitter case:
+    if feat == "|" and (inc_dir == "left" or inc_dir == "right"):
+        input_dir_list = ["up", "down"]
+    elif feat == "-" and (inc_dir == "up" or inc_dir == "down"):
+        input_dir_list = ["left", "right"]
+    # If feature is a reflector case:
+    if feat == "/" and (inc_dir == "up"):
+        input_dir_list = ["right"]
+    elif feat == "/" and (inc_dir == "down"):
+        input_dir_list = ["left"]
+    elif feat == "/" and (inc_dir == "left"):
+        input_dir_list = ["down"]
+    elif feat == "/" and (inc_dir == "right"):
+        input_dir_list = ["up"]
+
+    if feat == "0" and (inc_dir == "up"):
+        input_dir_list = ["left"]
+    elif feat == "0" and (inc_dir == "down"):
+        input_dir_list = ["right"]
+    elif feat == "0" and (inc_dir == "left"):
+        input_dir_list = ["up"]
+    elif feat == "0" and (inc_dir == "right"):
+        input_dir_list = ["down"]
+
+    input_list = []
+    for i in input_dir_list:
+        input_list.append([input_pos, i])
+
+    return input_list
+
+feat_record = []
+all_tiles_hit = []
+new_tests = [[[0,0], "down"]]
+while new_tests != []:
+    # Create copy of new_tests to be edited within for loop without mutating the list being iterated
+    new_tests_copy = list(new_tests)
+
+    for test in new_tests:
+        # Extract the start info for each new test in new_tests
+        current_pos = test[0]
+        current_dir = test[1]
+
+        # We reach a feature with our first function
+        [trav_pos, current_dir, tiles_hit, feat, bool_list] = laser_path(current_pos, current_dir, row_list, column_list)
+        hit_edge = bool_list[-1]
+        # If that collision hasn't happened before AND edge of map was not hit, prime the next input finder to add a new test to new_tests
+        if [trav_pos, current_dir] not in feat_record and hit_edge is False:
+            input_list = next_inputs_finder(feat, trav_pos, current_dir)
+            new_tests_copy += input_list
+
+        # The test that was just tested should be removed regardless
+        new_tests_copy.remove([current_pos, current_dir])
+        # Record all tiles hit and details of the feature collision
+        all_tiles_hit += tiles_hit
+        feat_record.append(list([trav_pos, current_dir]))
+
+    # All tests in last new_tests list have been run, now to update new_tests to the newest batch
+    new_tests = new_tests_copy
+    # If new_tests is empty, 
+    if new_tests == []:
+        print("END REACHED")
+
+unique_tiles_list = []
+for tile_pos in all_tiles_hit:
+    if tile_pos not in unique_tiles_list:
+        unique_tiles_list.append(tile_pos)
+print("PART 1 /// No. different tiles hit: " + str(len(unique_tiles_list)))
+
+# ////////////////// PART 2 //////////////////
+
+# Record all possible starting positions from positioning the laser around the map perimeter
+start_info_list = []
+idx = 0
+for pos in row_list[0]:
+    if pos == "." or pos == "|":
+        start_info_list.append([[[0, idx], "down"]])
+    elif pos in vert_feat_list:
+        input_list = next_inputs_finder(pos, [0, idx], "down")
+        start_info_list.append(input_list)
+    idx += 1
+
+idx = 0
+for pos in row_list[-1]:
+    if pos == "." or pos == "|":
+        start_info_list.append([[[0, idx], "up"]])
+    elif pos in vert_feat_list:
+        input_list = next_inputs_finder(pos, [0, idx], "up")
+        start_info_list.append(input_list)
+    idx += 1
+
+idx = 0
+for pos in column_list[0]:
+    if pos == "." or pos == "-":
+        start_info_list.append([[[0, idx], "right"]])
+    elif pos in horz_feat_list:
+        input_list = next_inputs_finder(pos, [0, idx], "right")
+        start_info_list.append(input_list)
+    idx += 1
+
+idx = 0
+for pos in column_list[-1]:
+    if pos == "." or pos == "-":
+        start_info_list.append([[[0, idx], "left"]])
+    elif pos in horz_feat_list:
+        input_list = next_inputs_finder(pos, [0, idx], "left")
+        start_info_list.append(input_list)
+    idx += 1
+
+# Iterate through the start_info_list, finding number of tiles energised from each starting position
+# Record number energised from each in eng_tiles_num_list
+eng_tiles_num_list = []
+for start_info in start_info_list:
+    feat_record = []
+    all_tiles_hit = []
+    new_tests = start_info
+    while new_tests != []:
+        # Create copy of new_tests to be edited within for loop without mutating the list being iterated
+        new_tests_copy = list(new_tests)
+
+        for test in new_tests:
+            # Extract the start info for each new test in new_tests
+            current_pos = test[0]
+            current_dir = test[1]
+
+            # We reach a feature with our first function
+            [trav_pos, current_dir, tiles_hit, feat, bool_list] = laser_path(current_pos, current_dir, row_list, column_list)
+            hit_edge = bool_list[-1]
+            # If that collision hasn't happened before AND edge of map was not hit, prime the next input finder to add a new test to new_tests
+            if [trav_pos, current_dir] not in feat_record and hit_edge is False:
+                input_list = next_inputs_finder(feat, trav_pos, current_dir)
+                new_tests_copy += input_list
+
+            # The test that was just tested should be removed regardless
+            new_tests_copy.remove([current_pos, current_dir])
+            # Record all tiles hit and details of the feature collision
+            all_tiles_hit += tiles_hit
+            feat_record.append(list([trav_pos, current_dir]))
+
+        # All tests in last new_tests list have been run, now to update new_tests to the newest batch
+        new_tests = new_tests_copy
+
+    unique_tiles_list = []
+    for tile_pos in all_tiles_hit:
+        if tile_pos not in unique_tiles_list:
+            unique_tiles_list.append(tile_pos)
+    eng_tiles_num_list.append(len(unique_tiles_list))
+
+print("PART 2 /// MAX No. different tiles hit: " + str(max(eng_tiles_num_list)))

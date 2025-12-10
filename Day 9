@@ -1,0 +1,121 @@
+# This code is part of the Advent of Code 2023 challenge.
+# Day 9: Mirage Maintenance
+
+with open("OASIS_report.txt") as oasis_report_file:
+    oasis_rep_raw = oasis_report_file.readlines()
+
+# Cleaning the puzzle input by putting each sequence into an integer list
+oasis_rep_clean1 = [i.strip("\n") for i in oasis_rep_raw]
+oasis_rep_clean2 = [i.split(" ") for i in oasis_rep_clean1]
+oasis_rep_cleaned = []
+for line in oasis_rep_clean2:
+    cleaned_line = []
+    for string in line:
+        cleaned_line.append(int(string))
+    oasis_rep_cleaned.append(cleaned_line)
+
+# //////////////// PART 1 ////////////////
+
+# Function takes a sequence and returns the next predicted value
+def seq_predictor(seq):
+    # For loop finds all sub sequences until common difference is 0
+    # All subsequences are stored in seq_array
+    current_seq = seq
+    idx_count = 0
+    next_seq = ["place holder"]
+    seq_array = [current_seq]
+
+    while next_seq.count(0) != len(next_seq):
+        next_seq = []
+        idx_0_check_0 = 0
+
+        for value in current_seq:
+            if idx_0_check_0 == 0:
+                prev_value = value
+                idx_0_check_0 += 1
+                continue
+
+            next_value = value - prev_value
+            next_seq.append(next_value)
+            prev_value = value
+        
+        seq_array.append(next_seq)
+        current_seq = next_seq
+    
+    # Orders seq_array from common diff seq up to most complex, removing the 0s list
+    seq_array = seq_array[:-1]
+    seq_array.reverse()
+
+    # This for loop iterates through seq_array and adds the last term of the prev to the last of the next
+    # It does this all the way from the common diff seq to the most complex to predict the next value
+    idx_0_check_1 = 0
+    for seq in seq_array:
+        if idx_0_check_1 == 0:
+            diff = seq[-1]
+            idx_0_check_1 += 1
+            continue
+        diff += seq[-1]
+    seq_prediction = diff
+
+    return seq_prediction
+
+# Iterates through all sequences in puzzle input and sums all predicted values in each sequence
+predicted_val_sum = 0
+for seq in oasis_rep_cleaned:
+    predicted_val = seq_predictor(seq)
+    predicted_val_sum += predicted_val
+print("PART 1 Answer: " + str(predicted_val_sum))
+
+# //////////////// PART 2 ////////////////
+
+# Function takes a sequence and returns the previous predicted value
+def seq_prev_predictor(seq):
+    # For loop finds all sub sequences until common difference is 0
+    # All subsequences are stored in seq_array
+    current_seq = seq
+    idx_count = 0
+    next_seq = ["place holder"]
+    seq_array = [current_seq]
+
+    while next_seq.count(0) != len(next_seq):
+        next_seq = []
+        idx_0_check_0 = 0
+
+        for value in current_seq:
+            if idx_0_check_0 == 0:
+                prev_value = value
+                idx_0_check_0 += 1
+                continue
+
+            next_value = value - prev_value
+            next_seq.append(next_value)
+            prev_value = value
+        
+        seq_array.append(next_seq)
+        current_seq = next_seq
+    
+    # Orders seq_array from common diff seq up to most complex, removing the 0s list
+    seq_array = seq_array[:-1]
+    seq_array.reverse()
+
+    # This for loop iterates through seq_array and subtracts the first term of the prev to the first of the next
+    # It does this all the way from the common diff seq to the most complex to predict the next value
+    idx_0_check_1 = 0
+    for seq in seq_array:
+        if idx_0_check_1 == 0:
+            diff = seq[0]
+            idx_0_check_1 += 1
+            continue
+        diff = seq[0] - diff
+    seq_prediction = diff
+
+    return seq_prediction
+
+# Iterates through all sequences in puzzle input and sums all predicted values in each sequence
+prev_val_sum = 0
+for seq in oasis_rep_cleaned:
+    prev_val = seq_prev_predictor(seq)
+    prev_val_sum += prev_val
+
+print("PART 2 Answer: " + str(prev_val_sum))
+

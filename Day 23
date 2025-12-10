@@ -1,0 +1,607 @@
+with open("mountain_map.txt") as mountain_map_file:
+    mountain_map_raw = mountain_map_file.readlines()
+
+mountain_map_cleaned = [i.strip("\n") for i in mountain_map_raw]
+slope_list = ["v", ">"]
+
+
+# This function:
+    # Finds the outcome of doing all down decisions from a given start point
+    # Finds number of steps to reach outcome
+    # Records the number of times it made the down decision
+def ones_dec_list(all_data, start_position, next_move, end_point):
+    pot_dec_point_pos_list = []
+    output_dec_list = []
+    dec_pos_list= []
+    step_count = 0
+    current_position = start_position
+    back_tracking = False
+    potential_dec_point = False
+    found_decision_point = False
+    end_point_reached = False
+    while end_point_reached == False and back_tracking == False:
+        # Execute next move based off of input and increment step_count accordingly
+        if next_move == 0:
+            next_position = [current_position[0] - 1, current_position[1]]
+        elif next_move == 1:
+            next_position = [current_position[0] + 1, current_position[1]]
+        elif next_move == 2:
+            next_position = [current_position[0], current_position[1] - 1]
+        elif next_move == 3:
+            next_position = [current_position[0], current_position[1] + 1]
+        step_count += 1
+        current_position = next_position
+        prev_move = next_move
+
+        # Breaks loop if we reach the end of the maze
+        if current_position == end_point:
+            end_point_reached = True
+            continue
+
+        # Scan the perimeter of the new current position
+        # current_position_perimeter of form: [(up_index,up_value, 0),(down..),(left..),(right..)]
+        # Remember each "index" variable is a list of a row index and a row pos. index
+        up_info = [[current_position[0] - 1,current_position[1]], all_data[current_position[0] - 1][current_position[1]], 0]
+        down_info = [[current_position[0] + 1,current_position[1]], all_data[current_position[0] + 1][current_position[1]], 1]
+        left_info = [[current_position[0],current_position[1] - 1], all_data[current_position[0]][current_position[1] - 1], 2]
+        right_info = [[current_position[0],current_position[1] + 1], all_data[current_position[0]][current_position[1] + 1], 3]
+        current_position_perimeter = [up_info, down_info, left_info, right_info]
+
+        # This makes it so that the previous position is not an option for the next_position
+        if prev_move == 0 or prev_move == 2:
+            del current_position_perimeter[prev_move+1]
+        elif prev_move == 1 or prev_move == 3:
+            del current_position_perimeter[prev_move-1]
+
+        for pos_info in current_position_perimeter:
+            # If the next position is a path, continue the loop following the path along
+            if pos_info[1] == ".":
+                next_move = pos_info[2]
+
+            # If the next position is a slope, follow the slope to the potential decision point and break the loop
+            # Output the position of the decision point and number of steps taken to get there
+            elif pos_info[1] in slope_list:
+                potential_dec_point = True
+                
+                if pos_info[1] == ">":
+                    next_position = [current_position[0], current_position[1] + 2] 
+                elif pos_info[1] == "v":
+                    next_position = [current_position[0] + 2, current_position[1]]
+                step_count += 2
+                current_position = next_position
+                # current_position now contains the position of the potential decision_point
+                # First check if that position is already in pot_dec_point_pos_list
+                    # If it is then make back_tracking True and end loop, if not, add the position to the list
+                if current_position in pot_dec_point_pos_list:
+                    back_tracking = True
+                    continue
+                else:
+                    pot_dec_point_pos_list.append(current_position)
+
+
+        next_possible_moves = []
+
+        # Now must check potential decision point's perimeter and store the next possible direction(s):
+        if all_data[current_position[0] + 1][current_position[1]] == "v":
+            next_possible_moves.append(1)
+        if all_data[current_position[0]][current_position[1] + 1] == ">":
+            next_possible_moves.append(3)
+
+    # current_position is only a decision point if we have the option of "right" AND "down"
+        if next_possible_moves == [1,3]:
+            found_decision_point = True
+            output_dec_list.append(1)
+            dec_pos_list.append(current_position)
+            next_move = 1
+        elif next_possible_moves == [1]:
+            next_move = 1
+        elif next_possible_moves == [3]:
+            next_move = 3
+
+    # Can add a list output of positions already visited, but omitting this for now
+    bool_list = [back_tracking, end_point_reached]
+    return [step_count, output_dec_list, bool_list, dec_pos_list, pot_dec_point_pos_list]
+# Outputs: [step_count, output_dec_list, bool_list, dec_pos_list]
+# Note: bool_list = [back_tracking, end_point_reached]
+
+# test = ones_dec_list(mountain_map_cleaned, [0,1], 1, [140,139])
+# print(test)
+
+def follow_dec_list(all_data, start_position, next_move, decision_list, end_point):
+    pot_dec_point_pos_list = []
+    decisions_executed = []
+    step_count = 0
+    current_position = start_position
+    back_tracking = False
+    potential_dec_point = False
+    end_point_reached = False
+
+    decision_list.insert(0, next_move)
+
+    # while end_point_reached == False and back_tracking == False:
+    # At beginning of for loop, for first item in decision_list:
+        # current position and next_move are the initial inputted values
+    # At the end of the for loop for the first item in decision_list,
+        # The position of the new decision point should be appended to position_tracker
+        # The first move in the decision list should be appended to move_tracker
+    for current_move_in_list in decision_list:
+        #current_position = position_tracker[-1]
+        next_move = current_move_in_list
+        found_decision_point = False
+
+        while found_decision_point == False:
+            # Execute next move based off of input and increment step_count accordingly
+            if next_move == 0:
+                next_position = [current_position[0] - 1, current_position[1]]
+            elif next_move == 1:
+                next_position = [current_position[0] + 1, current_position[1]]
+            elif next_move == 2:
+                next_position = [current_position[0], current_position[1] - 1]
+            elif next_move == 3:
+                next_position = [current_position[0], current_position[1] + 1]
+            step_count += 1
+            current_position = next_position
+            prev_move = next_move
+
+            # Breaks loop if we reach the end of the maze
+            if current_position == end_point:
+                end_point_reached = True
+                break
+
+            # Scan the perimeter of the new current position
+            # current_position_perimeter of form: [(up_index,up_value, 0),(down..),(left..),(right..)]
+            # Remember each "index" variable is a list of a row index and a row pos. index
+            up_info = [[current_position[0] - 1,current_position[1]], all_data[current_position[0] - 1][current_position[1]], 0]
+            down_info = [[current_position[0] + 1,current_position[1]], all_data[current_position[0] + 1][current_position[1]], 1]
+            left_info = [[current_position[0],current_position[1] - 1], all_data[current_position[0]][current_position[1] - 1], 2]
+            right_info = [[current_position[0],current_position[1] + 1], all_data[current_position[0]][current_position[1] + 1], 3]
+            current_position_perimeter = [up_info, down_info, left_info, right_info]
+
+            # This makes it so that the previous position is not an option for the next_position
+            if prev_move == 0 or prev_move == 2:
+                del current_position_perimeter[prev_move+1]
+            elif prev_move == 1 or prev_move == 3:
+                del current_position_perimeter[prev_move-1]
+
+            for pos_info in current_position_perimeter:
+                # If the next position is a path, continue the loop following the path along
+                if pos_info[1] == ".":
+                    next_move = pos_info[2]
+
+                # If the next position is a slope, follow the slope to the potential decision point and break the loop
+                # Output the position of the decision point and number of steps taken to get there
+                elif pos_info[1] in slope_list:
+                    potential_dec_point = True
+                    
+                    if pos_info[1] == ">":
+                        next_position = [current_position[0], current_position[1] + 2] 
+                    elif pos_info[1] == "v":
+                        next_position = [current_position[0] + 2, current_position[1]]
+                    step_count += 2
+                    current_position = next_position
+                    # current_position now contains the position of the potential decision_point
+
+                    # First check if that position is already in pot_dec_point_pos_list
+                        # If it is then make back_tracking True and end loop, if not, add the position to the list
+                    if current_position in pot_dec_point_pos_list:
+                        back_tracking = True
+                        continue
+                    else:
+                        pot_dec_point_pos_list.append(current_position)
+
+                        next_possible_moves = []
+
+                        # Now must check potential decision point's perimeter and store the next possible direction(s):
+                        if all_data[current_position[0] + 1][current_position[1]] == "v":
+                            next_possible_moves.append(1)
+                        if all_data[current_position[0]][current_position[1] + 1] == ">":
+                            next_possible_moves.append(3)
+
+                        # current_position is only a decision point if we have the option of "right" AND "down"
+                        if next_possible_moves == [1,3]:
+                            found_decision_point = True
+                            next_move = current_move_in_list
+                            decisions_executed.append(current_move_in_list)
+
+                        elif next_possible_moves == [1]:
+                            next_move = 1
+                        elif next_possible_moves == [3]:
+                            next_move = 3
+
+
+        if back_tracking == True or end_point_reached == True:
+            break
+
+        #position_tracker.append(current_position)
+        #move_tracker.append(current_move_in_list)
+        #current_position
+        # This is just after the while loop so after it has been broken (since a decision point has been found)
+            # We want to make sure the for loop has all the values it needs to do the next iteration:
+
+
+
+    end_position = current_position
+    current_position = next_position
+    # Can add a list output of positions already visited, but omitting this for now
+    bool_list = [back_tracking, end_point_reached]
+    # decisions_executed contains all decisions that were ACTUALLY executed from decision_list, before an outcome was reached
+    return [step_count, end_position, bool_list]
+
+# test1 = follow_dec_list(mountain_map_cleaned, [0,1], 1, [], [140,139])
+# print(test1)
+
+def find_all_dec_points(all_data):
+
+    two_way_dec_list = []
+    three_way_dec_list = []
+
+    potential_dec_point = False
+    found_decision_point = False
+
+    row_index = 1
+    for row in all_data[1:-1]:
+        
+        value_index = 1
+        for value in row[1:-1]:
+
+            if value == ".":
+                current_position = [row_index, value_index]
+    
+                up_info = [[current_position[0] - 1,current_position[1]], all_data[current_position[0] - 1][current_position[1]], 0]
+                down_info = [[current_position[0] + 1,current_position[1]], all_data[current_position[0] + 1][current_position[1]], 1]
+                left_info = [[current_position[0],current_position[1] - 1], all_data[current_position[0]][current_position[1] - 1], 2]
+                right_info = [[current_position[0],current_position[1] + 1], all_data[current_position[0]][current_position[1] + 1], 3]
+                current_position_perimeter = [up_info, down_info, left_info, right_info]
+
+                slope_value_count = 0
+                for pos_info in current_position_perimeter:
+
+                    if pos_info[1] in slope_list:
+                        slope_value_count += 1
+
+                if slope_value_count > 2:
+
+                    next_possible_moves = []
+
+                    # Now must check potential decision point's perimeter and store the next possible direction(s):
+                    if all_data[current_position[0]-1][current_position[1]] == "v":
+                        next_possible_moves.append(0)
+                    if all_data[current_position[0] + 1][current_position[1]] == "v":
+                        next_possible_moves.append(1)
+                    if all_data[current_position[0]][current_position[1] - 1] == ">":
+                        next_possible_moves.append(2)
+                    if all_data[current_position[0]][current_position[1] + 1] == ">":
+                        next_possible_moves.append(3)
+
+                    if len(next_possible_moves) == 3:
+                        two_way_dec_list.append([current_position, next_possible_moves])
+                    elif len(next_possible_moves) == 4:
+                        three_way_dec_list.append([current_position, next_possible_moves])
+
+            value_index += 1
+
+        row_index += 1
+
+    return [two_way_dec_list, three_way_dec_list]
+
+results = find_all_dec_points(mountain_map_cleaned)
+two_way_dec_list = results[0]
+three_way_dec_list = results[1]
+two_way_pos_list = [i[0] for i in results[0]]
+three_way_pos_list = [i[0] for i in results[1]]
+
+
+# PART 1 /////////////////////////////////////////////////////////////////////////////////////////////////
+
+# test_range = list(range(0,512))
+# decision_lists = []
+
+# for i in test_range:
+#     binary_num_list = []    
+#     binary_str_list = list(format(i, 'b'))
+#     while len(binary_str_list) < 9:
+#         binary_str_list.insert(0,"0")
+#     for string_int in binary_str_list:
+#         if string_int == "0":
+#             binary_num_list.append(1)
+#         else:
+#             binary_num_list.append(3)
+#     decision_lists.append(binary_num_list)
+# # binary_num_list now contains every 9 digit trial decision list ~ there are 512
+# print(len(decision_lists))
+
+# successful_trials_steps = []
+# incomplete_decision_lists = []
+# for decision_list in decision_lists:
+
+#     trial_info = follow_dec_list(mountain_map_cleaned, [0,1], 1, decision_list, [140,139])
+#     outcome = trial_info[2]
+#     if outcome[0] == True:
+#         continue
+#     elif outcome[1] == True:
+#         successful_trials_steps.append(trial_info[0])
+#     elif outcome[0] == False and outcome[1] == False:
+#         incomplete_decision_lists.append(decision_list)
+
+# print(max(successful_trials_steps))
+# print(len(incomplete_decision_lists))
+
+
+# PART 2 /////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+# Takes [1,1] start position ~ one step down from actual start
+def updated_follow_dec_list(all_data, start_position, decision_list, end_point):
+    pot_dec_point_pos_list = []
+    decisions_executed = []
+    choices_list = []
+    removed_choice_list = []
+    step_count = 1
+
+    back_tracking = False
+    potential_dec_point = False
+    end_point_reached = False
+
+
+    decision_list.append("buffer")
+
+
+    current_position = start_position
+    prev_move = 1
+    found_dec_count = 0
+
+
+    for current_move_in_list in decision_list:
+
+
+        potential_dec_point = False
+        found_decision_point = False
+        end_of_dec_list = False
+        two_way = False
+        three_way = False
+
+        while found_decision_point == False and end_point_reached == False and end_of_dec_list == False:
+
+            # Gets perim info
+            up_info = [[current_position[0] - 1,current_position[1]], all_data[current_position[0] - 1][current_position[1]][:], 0]
+            down_info = [[current_position[0] + 1,current_position[1]], all_data[current_position[0] + 1][current_position[1]][:], 1]
+            left_info = [[current_position[0],current_position[1] - 1], all_data[current_position[0]][current_position[1] - 1][:], 2]
+            right_info = [[current_position[0],current_position[1] + 1], all_data[current_position[0]][current_position[1] + 1][:], 3]
+            current_position_perimeter = [up_info, down_info, left_info, right_info]
+
+            # Removes the way we came as option in current_position_perimeter
+            if prev_move == 0 or prev_move == 2:
+                del current_position_perimeter[prev_move+1]
+            elif prev_move == 1 or prev_move == 3:
+                del current_position_perimeter[prev_move-1]
+
+            # Iterates through perimeter info
+
+            for pos_info in current_position_perimeter:
+                # If the next position is a path, continue the loop following the path along
+                if pos_info[1] == ".":
+                    next_move = pos_info[2]
+                
+
+                # If the next position is a slope, follow the slope to the potential decision point and break the loop
+                # Output the position of the decision point and number of steps taken to get there
+                elif pos_info[1] in slope_list:
+                    found_decision_point = True
+                    found_dec_count += 1
+                    
+                    if pos_info[1] == ">" and pos_info[2] == 3:
+                        next_position = [current_position[0], current_position[1] + 2] 
+                        prev_move = 3
+                    elif pos_info[1] == ">" and pos_info[2] == 2:
+                        next_position = [current_position[0], current_position[1] - 2]
+                        prev_move = 2
+                    elif pos_info[1] == "v" and pos_info[2] == 1:
+                        next_position = [current_position[0] + 2, current_position[1]]
+                        prev_move = 1
+                    elif pos_info[1] == "v" and pos_info[2] == 0:
+                        next_position = [current_position[0] - 2, current_position[1]]
+                        prev_move = 0
+                    step_count += 2
+                    current_position = next_position
+                    # current_position now contains the position of the potential decision_point
+
+
+
+            if found_decision_point == True:
+                #pot_dec_point_pos_list.append(current_position)
+
+#//////////////////////////////////////////////////////
+
+                if current_position in pot_dec_point_pos_list:
+                    pot_dec_point_pos_list.append(current_position)
+                    back_tracking = True
+                    break
+                # elif current_move_in_list == decision_list[-1]:
+                #     pot_dec_point_pos_list.append(current_position)
+                #     end_of_dec_list = True
+                #     break
+                else:
+                    pot_dec_point_pos_list.append(current_position)
+                    if prev_move == 0 or prev_move == 2:
+                        removed_choice = prev_move + 1
+                    else:
+                        removed_choice = prev_move - 1
+
+                    if current_position in two_way_pos_list:
+                        two_way = True
+
+                        position_index = two_way_pos_list.index(current_position)
+                        choices = two_way_dec_list[position_index][1][:]
+                        choices_list.append(choices)
+                        removed_choice_list.append(removed_choice)
+                        choices.remove(removed_choice)
+                        #choices_list.append(choices)
+
+                        if current_move_in_list == decision_list[-1]:
+                            end_of_dec_list = True
+                            break
+
+                        if current_move_in_list == 0 or current_move_in_list == 2:
+                            next_move = choices[0]
+                            decisions_executed.append(next_move)
+                        elif current_move_in_list == 1:
+                            next_move = choices[1]
+                            decisions_executed.append(next_move)
+
+                    elif current_position in three_way_pos_list:
+                        three_way = True
+
+                        position_index = three_way_pos_list.index(current_position)
+                        choices = three_way_dec_list[position_index][1][:]
+                        choices.remove(removed_choice)
+                        choices_list.append(choices)
+
+                        if current_move_in_list == decision_list[-1]:
+                            end_of_dec_list = True
+                            break
+
+                        if current_move_in_list == 0:
+                            next_move = choices[0]
+                            decisions_executed.append(next_move)                                
+                        elif current_move_in_list == 1:
+                            next_move = choices[1]
+                            decisions_executed.append(next_move)                                
+                        elif current_move_in_list == 2:
+                            next_move = choices[2]
+                            decisions_executed.append(next_move)
+
+
+            if next_move == 0:
+                next_position = [current_position[0] - 1, current_position[1]]
+            elif next_move == 1:
+                next_position = [current_position[0] + 1, current_position[1]]
+            elif next_move == 2:
+                next_position = [current_position[0], current_position[1] - 1]
+            elif next_move == 3:
+                next_position = [current_position[0], current_position[1] + 1]
+            step_count += 1
+            current_position = next_position
+            prev_move = next_move
+
+            # Breaks loop if we reach the end of the maze
+            if current_position == end_point:
+                end_point_reached = True
+            
+
+
+        if back_tracking == True or end_point_reached == True:
+            break
+
+        #position_tracker.append(current_position)
+        #move_tracker.append(current_move_in_list)
+        #current_position
+        # This is just after the while loop so after it has been broken (since a decision point has been found)
+            # We want to make sure the for loop has all the values it needs to do the next iteration:
+
+
+    end_position = current_position
+    # Can add a list output of positions already visited, but omitting this for now
+    bool_list = [back_tracking, end_point_reached]
+    # decisions_executed contains all decisions that were ACTUALLY executed from decision_list, before an outcome was reached
+    return [step_count, end_position, bool_list, pot_dec_point_pos_list, decisions_executed]
+
+# testn = updated_follow_dec_list(mountain_map_cleaned, [1,1], [1,1,1,1,1,1,1,1], [140,139])
+# print(testn)
+
+
+print("//////////////////////////////////////////////////////\nNEW ITERATION\n//////////////////////////////////////////////////////")
+
+incomplete_lists = True
+failed_lists = [[0],[1],[2]]
+required_length = 5
+while incomplete_lists == True :
+
+    gen_dec_lists = failed_lists
+    three_num_list = [[0],[1],[2]]
+    # This loop puts all decision lists with 0,1,2 of a set required length into gen_dec_lists
+
+    while len(gen_dec_lists[0]) != required_length:
+
+        replaced_list = []
+        replacing_list = []
+
+        for old_list in gen_dec_lists:
+            replaced_list.append(old_list)
+
+            for num in three_num_list:
+                new_list = old_list + num
+                replacing_list.append(new_list)
+
+        for removed in replaced_list:
+            gen_dec_lists.remove(removed)
+        for added in replacing_list:
+            gen_dec_lists.append(added)
+
+    incomplete_lists = False
+    dec_lists_processed = 0
+    first_failure = False
+    failed_lists = []
+    steps_list = [0]
+    backtrack_count = 0
+    reached_end_count = 0
+
+    for gen_dec_list in gen_dec_lists:
+        dec_lists_processed += 1
+        results = updated_follow_dec_list(mountain_map_cleaned, [1,1], gen_dec_list, [140,139])
+
+        if results[2][0] == False and results[2][1] == False:
+            # Note, we exclude the last element from the list because our follow function appended a "buffer" element to it
+            failed_lists.append(gen_dec_list[:-1])
+            if first_failure == False:
+
+                incomplete_lists = True
+                first_failure = True
+
+                rejected_length = required_length
+                all_to_be_processed = len(gen_dec_lists)
+                dec_pos_list = results[3]
+                dec_list = results[4]
+                steps = results[0]
+                print("Rejected dec list length: " + str(rejected_length))
+                print("Number of dec lists processed: " + str(dec_lists_processed))
+                print("All that should have been processed: " + str(all_to_be_processed))
+                print("Positions of decision points visited: " + str(dec_pos_list))
+                print("Decisions executed: " + str(dec_list))
+                print("Step count: " + str(steps))
+                print()
+
+        if results[2][0] == True:
+            backtrack_count += 1
+        if results[2][1] == True:
+            steps_list.append(results[0])
+            reached_end_count += 1
+        
+    if incomplete_lists == True:
+        required_length += 1
+
+
+    biggest_route_steps = max(steps_list)
+    print("Backtrack count: " + str(backtrack_count))
+    print("Reached end count: " + str(reached_end_count))
+    print("Step count for longest successful route: " + str(biggest_route_steps))
+    print("\n ----------------------------------------- \n")
+
+
+
+
+
+
+
+
+
+        
+#print(required_length)
+
+
+# test = updated_follow_dec_list(mountain_map_cleaned, [1,1], [0,0,0,0,0,0,0,0], [140,139])
+# print(test)
+
+# # print(mountain_map_cleaned[104][57])
+# print(three_way_pos_list)
+# print(two_way_pos_list)
+# # print(len(mountain_map_cleaned))

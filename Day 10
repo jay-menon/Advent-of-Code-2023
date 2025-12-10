@@ -1,0 +1,268 @@
+# This code is part of the Advent of Code 2023 challenge.
+# Day 10: Pipe Maze
+
+with open("Pipe_map.txt") as pipe_map_file:
+    pipe_map_raw = pipe_map_file.readlines()
+
+pipe_map_cleaned = [i.strip("\n") for i in pipe_map_raw]
+
+# ///////////////////////////////////////////////////////////
+
+# Must put a perimeter on map in case path finder hits a border
+pipe_map = []
+org_row_len = len(pipe_map_cleaned[0])
+for line in pipe_map_cleaned:
+    pipe_map.append("0"+line+"0")
+pipe_map.insert(0,"0"*len(pipe_map[0]))
+pipe_map.append("0"*len(pipe_map[0]))
+
+# Find S in the puzzle input
+line_index = 0
+for line in pipe_map:
+    if "S" not in line:
+        line_index += 1
+        continue
+    else:
+        value_index = line.index("S")
+        start_pos = [line_index, value_index]
+print("Starting position: "+ str(start_pos))
+
+# Viable pipes (vp) lists:
+up_vp = ["|", "F", "7", "S"]
+down_vp = ["|", "L", "J", "S"]
+left_vp = ["-", "F", "L", "S"]
+right_vp = ["-", "7", "J", "S"]
+
+# ///////////////// Part 1 /////////////////
+
+def loop_finder(start, map):
+    step_count = 0
+    current_pos = start
+    current_val = "S"
+    last_pos = "placeholder"
+    while current_pos != start or step_count == 0:
+        #print(current_pos)
+        # Perimeter of the format ~ [up, down, left, right]
+        up_pos = [current_pos[0] - 1, current_pos[1]]
+        down_pos = [current_pos[0] + 1, current_pos[1]]
+        left_pos = [current_pos[0], current_pos[1] - 1]
+        right_pos = [current_pos[0], current_pos[1] + 1]
+
+        up_val = map[up_pos[0]][up_pos[1]]
+        down_val = map[down_pos[0]][down_pos[1]]
+        left_val = map[left_pos[0]][left_pos[1]]
+        right_val = map[right_pos[0]][right_pos[1]]
+
+        # Check perimeter for next move
+        # Note: cannot use "is not" in place of "!=" for comparing two lists like down_pos and last_pos
+        if (up_val in up_vp) and (up_pos != last_pos) and (current_val in down_vp):
+            next_pos = up_pos
+        elif (down_val in down_vp) and (down_pos != last_pos) and (current_val in up_vp):
+            next_pos = down_pos
+        elif (left_val in left_vp) and (left_pos != last_pos) and (current_val in right_vp):
+            next_pos = left_pos
+        elif (right_val in right_vp) and (right_pos != last_pos) and (current_val in left_vp):
+            next_pos = right_pos   
+
+        # Take next step
+        step_count += 1
+        last_pos = current_pos
+        current_pos = next_pos
+        current_val = map[current_pos[0]][current_pos[1]]
+
+    return step_count
+    
+print("PART 1 /// Max steps from start: "+ str(int(loop_finder(start_pos, pipe_map)/2)))
+
+# ///////////////// Part 2 /////////////////
+
+# Function does the same as the first but keeps track of all positions that are part of the loop
+def loop_finder_2(start, map):
+    loop_pos_list = []
+    step_count = 0
+    current_pos = start
+    current_val = "S"
+    last_pos = "placeholder"
+    while current_pos != start or step_count == 0:
+        # Loop's positions are stored in loop_pos_list
+        if current_pos not in loop_pos_list:
+            loop_pos_list.append(current_pos)
+        up_pos = [current_pos[0] - 1, current_pos[1]]
+        down_pos = [current_pos[0] + 1, current_pos[1]]
+        left_pos = [current_pos[0], current_pos[1] - 1]
+        right_pos = [current_pos[0], current_pos[1] + 1]
+
+        up_val = map[up_pos[0]][up_pos[1]]
+        down_val = map[down_pos[0]][down_pos[1]]
+        left_val = map[left_pos[0]][left_pos[1]]
+        right_val = map[right_pos[0]][right_pos[1]]
+
+        # Check perimeter for next move
+        # Note: cannot use "is not" in place of "!=" for comparing two lists like down_pos and last_pos
+        if (up_val in up_vp) and (up_pos != last_pos) and (current_val in down_vp):
+            next_pos = up_pos
+        elif (down_val in down_vp) and (down_pos != last_pos) and (current_val in up_vp):
+            next_pos = down_pos
+        elif (left_val in left_vp) and (left_pos != last_pos) and (current_val in right_vp):
+            next_pos = left_pos
+        elif (right_val in right_vp) and (right_pos != last_pos) and (current_val in left_vp):
+            next_pos = right_pos   
+
+        # Take next step
+        step_count += 1
+        last_pos = current_pos
+        current_pos = next_pos
+        current_val = map[current_pos[0]][current_pos[1]]
+
+    return loop_pos_list
+
+# Takes a path of a loop and determines whether that path is going CW (Clockwise) or ACW (Anti-clockwise) around the loop
+def CW_or_ACW(path_order):
+    # First find the line index value of the top border of the loop
+    def idx_1_sort(i):
+        return i[0]
+    path_order_copy_0 = list(path_order)
+    path_order_copy_0.sort(key=idx_1_sort)
+    top_line_idx = path_order_copy_0[0][0]
+    # Next, figure out if the path is moving left or right along that top border
+    # Start by adding all top border positions in the order they are visited to top_border_pos_list
+    top_border_pos_list = []
+    for pos in path_order:
+        if pos[0] is top_line_idx:
+            top_border_pos_list.append(pos)
+    # Increasing value indices ~ CW ; Decreasing value indices ~ ACW
+    if top_border_pos_list[0][1] < top_border_pos_list[1][1]:
+        direction = "CW"
+    elif top_border_pos_list[0][1] > top_border_pos_list[1][1]:
+        direction = "ACW"
+    else:
+        direction = "undetermined"
+
+    return direction
+
+# Finds any positions adjacent to the loop path that exist within the loop (which aren't positions on the l)
+def inner_perim_tracker(start, direction,  map):
+    corner_list = ["J","F","7","L"]
+    loop_pos_list = []
+    inner_loop_pos = []
+    step_count = 0
+    current_pos = start
+    current_val = "S"
+    last_pos = "placeholder"
+    while current_pos != start or step_count == 0:
+        # Loop's positions are stored in loop_pos_list
+        if current_pos not in loop_pos_list:
+            loop_pos_list.append(current_pos)
+        up_pos = [current_pos[0] - 1, current_pos[1]]
+        down_pos = [current_pos[0] + 1, current_pos[1]]
+        left_pos = [current_pos[0], current_pos[1] - 1]
+        right_pos = [current_pos[0], current_pos[1] + 1]
+
+        up_val = map[up_pos[0]][up_pos[1]]
+        down_val = map[down_pos[0]][down_pos[1]]
+        left_val = map[left_pos[0]][left_pos[1]]
+        right_val = map[right_pos[0]][right_pos[1]]
+
+        # Check perimeter for next move
+        # Note: cannot use "is not" in place of "!=" for comparing two lists like down_pos and last_pos
+        # In this function we record the inside value depending on the next move
+
+        # Normal up/down/left/right cases
+        if (up_val in up_vp) and (up_pos != last_pos) and (current_val in down_vp):
+            next_pos = up_pos
+            if direction == "CW":
+                inner_pos = [[current_pos[0], current_pos[1]+1]]
+            elif direction == "ACW":
+                inner_pos = [[current_pos[0], current_pos[1]-1]]
+        elif (down_val in down_vp) and (down_pos != last_pos) and (current_val in up_vp):
+            next_pos = down_pos
+            if direction == "CW":
+                inner_pos = [[current_pos[0], current_pos[1]-1]]
+            elif direction == "ACW":
+                inner_pos = [[current_pos[0], current_pos[1]+1]]
+        elif (left_val in left_vp) and (left_pos != last_pos) and (current_val in right_vp):
+            next_pos = left_pos
+            if direction == "CW":
+                inner_pos = [[current_pos[0]-1, current_pos[1]]]
+            elif direction == "ACW":
+                inner_pos = [[current_pos[0]+1, current_pos[1]]]
+        elif (right_val in right_vp) and (right_pos != last_pos) and (current_val in left_vp):
+            next_pos = right_pos
+            if direction == "CW":
+                inner_pos = [[current_pos[0]+1, current_pos[1]]]
+            elif direction == "ACW":
+                inner_pos = [[current_pos[0]-1, current_pos[1]]]
+
+        # Solving corner exlcusion problem
+        if current_val in corner_list:
+            if current_val == "F":
+                if (last_pos == right_pos and direction == "CW") or (last_pos == down_pos and direction == "ACW"):
+                    inner_pos = [left_pos, up_pos, [current_pos[0]-1,current_pos[1]-1]]
+                elif (last_pos == right_pos and direction == "ACW") or (last_pos == down_pos and direction == "CW"):
+                    inner_pos = [[current_pos[0]+1,current_pos[1]+1]]
+            elif current_val == "J":
+                if (last_pos == left_pos and direction == "CW") or (last_pos == up_pos and direction == "ACW"):
+                    inner_pos = [right_pos, down_pos, [current_pos[0]+1,current_pos[1]+1]]
+                elif (last_pos == left_pos and direction == "ACW") or (last_pos == up_pos and direction == "CW"):
+                    inner_pos = [[current_pos[0]-1,current_pos[1]-1]]
+            elif current_val == "L":
+                if (last_pos == up_pos and direction == "CW") or (last_pos == right_pos and direction == "ACW"):
+                    inner_pos = [left_pos, down_pos, [current_pos[0]+1,current_pos[1]-1]]
+                elif (last_pos == up_pos and direction == "ACW") or (last_pos == right_pos and direction == "CW"):
+                    inner_pos = [[current_pos[0]-1,current_pos[1]+1]]
+            elif current_val == "7":
+                if (last_pos == down_pos and direction == "CW") or (last_pos == left_pos and direction == "ACW"):
+                    inner_pos = [right_pos, up_pos, [current_pos[0]-1,current_pos[1]+1]]
+                elif (last_pos == down_pos and direction == "ACW") or (last_pos == left_pos and direction == "CW"):
+                    inner_pos = [[current_pos[0]+1,current_pos[1]-1]]
+
+        # Take next step
+        step_count += 1
+        last_pos = current_pos
+        current_pos = next_pos
+        current_val = map[current_pos[0]][current_pos[1]]
+        inner_loop_pos += inner_pos
+
+    # After we have the complete loop_pos_list, we can remove any positions from inner_loop_pos that are on the loop
+    unique_inner_pos = []
+    for pos in inner_loop_pos:
+        if pos not in loop_pos_list and pos not in unique_inner_pos:
+            unique_inner_pos.append(pos)
+
+    return [unique_inner_pos, loop_pos_list]
+
+# For given positions within the loop, the function finds adjacent values that are also within the loop
+def proximity_check(test_pos_list, border_pos_list):
+    # We want cluster_pos_list to contain ALL enclosed positions once by the end of function
+    # Hence we start by including all the test values which we know are enclosed by the loop and are unique
+    cluster_pos_list = list(test_pos_list)
+    new_to_test = list(test_pos_list)
+
+    while new_to_test != []:
+        test_pos_list = new_to_test
+        new_to_test = []
+
+        for pos in test_pos_list:
+
+            # For every position in our known enclosed values we find the perimeter
+            current_pos = pos
+            up_pos = [current_pos[0] - 1, current_pos[1]]
+            down_pos = [current_pos[0] + 1, current_pos[1]]
+            left_pos = [current_pos[0], current_pos[1] - 1]
+            right_pos = [current_pos[0], current_pos[1] + 1]
+            test_list = [current_pos, up_pos, down_pos, left_pos, right_pos]
+            # If any perimeter positions are not border positions AND they have not already been tested, we add it to cluster_pos_list
+            for test in test_list:
+                if test not in border_pos_list and test not in cluster_pos_list:
+                    cluster_pos_list.append(test)
+                    new_to_test.append(test)
+    
+
+    return cluster_pos_list
+
+loop_pos_list = loop_finder_2(start_pos, pipe_map)
+direction = CW_or_ACW(loop_pos_list)
+inner_pos_list = inner_perim_tracker(start_pos, direction, pipe_map)
+all_inner_pos = proximity_check(inner_pos_list[0], loop_pos_list)
+print("PART 2 /// Number of enclosed tiles: " + str(len(all_inner_pos)))
+

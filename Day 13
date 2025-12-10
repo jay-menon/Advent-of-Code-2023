@@ -1,0 +1,284 @@
+# This code is part of the Advent of Code 2023 challenge.
+# Day 13: Point of Incidence
+
+# ///////// CLEANING PUZZLE INPUT /////////
+
+with open("Rock_map.txt") as rock_map_file:
+    rock_map_raw = rock_map_file.readlines()
+
+# Formats map_catalogue = [[map_0], [map_1], [map_2]...]
+rock_map_strip = [i.strip("\n") for i in rock_map_raw]
+rock_map_strip.append("")
+map_catalogue = []
+map = []
+for line in rock_map_strip:
+    if line != "":
+        map.append(line)
+    elif line == "":
+        map_catalogue.append(map)
+        map = []
+
+# ////////////////// PART 1 //////////////////
+
+# Returns row and column list of the rock map
+def row_col_formatter(rock_map):
+    # rock_map is already in row_list format
+    row_list = rock_map
+
+    # Rearrange row_list to get column_list
+    # Preallocate column_list sublists to each column
+    reformat = []
+    for i in range(len(row_list[0])):
+        reformat.append([])
+
+    # Fills up each sublist with column values
+    for line in row_list:
+        val_idx = 0
+        for value in line:
+            reformat[val_idx].append(value)
+            val_idx += 1
+
+    # reformat contains column info but need to format into continuous string
+    column_list = []
+    for line in reformat:
+        str = ""
+        for val in line:
+            str += val
+        column_list.append(str)
+    
+    return row_list, column_list
+
+# Returns line of symmetry positions for given row and column lists
+def sym_finder(row_list, col_list):
+    # Check rows for any immediate symmetry
+    # Records the row idx after which line of sym was found
+    pot_row_syms = []
+    row_idx = 0
+    last_row = "placeholder"
+    for row in row_list:
+        if row == last_row:
+            pot_row_syms.append(row_idx-1)
+        row_idx += 1
+        last_row = row
+    # Check columns for any immediate symmetry
+    # Records the col idx after which line of sym was found
+    pot_col_syms = []
+    col_idx = 0
+    last_col = "placeholder"
+    for col in col_list:
+        if col == last_col:
+            pot_col_syms.append(col_idx-1)
+        col_idx += 1
+        last_col = col
+    
+    # pot_row_syms and pot_col_syms now contain all potential lines of symmetry
+    # //////////////////////////////////////////////
+
+    # Now test the potential sym lines
+    actual_row_sym = "placeholder"
+    actual_col_sym = "placeholder"
+
+    # Test horz lines of sym
+    for pot_sym in pot_row_syms:
+        # Split row_list at pot sym line into two test lists
+        test_0 = row_list[:pot_sym + 1]
+        test_1 = row_list[pot_sym + 1:]
+        # Must shorten longer list to be same size as shorter one
+        smaller_list_len = min([len(test_0), len(test_1)])
+        test_0 = test_0[-smaller_list_len:]
+        test_1 = test_1[:smaller_list_len]
+        test_2 = list(test_1)
+        test_2.reverse()
+        # If the reverse of one list is the same as the other, we have found the line of symmetry
+        if test_0 == test_2:
+            actual_row_sym = pot_sym
+            return [actual_row_sym, actual_col_sym]
+
+    # Test horz lines of sym
+    for pot_sym in pot_col_syms:
+        # Split col_list at pot sym line into two test lists
+        test_0 = col_list[:pot_sym + 1]
+        test_1 = col_list[pot_sym + 1:]
+        # Must shorten longer list to be same size as shorter one
+        smaller_list_len = min([len(test_0), len(test_1)])
+        test_0 = test_0[-smaller_list_len:]
+        test_1 = test_1[:smaller_list_len]
+        test_2 = list(test_1)
+        test_2.reverse()
+        # If the reverse of one list is the same as the other, we have found the line of symmetry
+        if test_0 == test_2:
+            actual_col_sym = pot_sym
+            return [actual_row_sym, actual_col_sym]
+
+# Calculates a given map's symmetry score
+def score_calc(row_sym, col_sym):
+    if col_sym == "placeholder":
+        score = (row_sym + 1) * 100
+    else:
+        score = col_sym + 1
+    return score
+
+# Sums scores across all maps in puzzle input
+sum_score = 0
+for map in map_catalogue:
+    [row_list, col_list] = row_col_formatter(map)
+    [row_sym, col_sym] = sym_finder(row_list, col_list)
+    score = score_calc(row_sym, col_sym)
+    sum_score += score
+print("PART 1 /// Sum symmetry score: " + str(sum_score))
+
+# ////////////////// PART 2 //////////////////
+
+# Returns line of symmetry positions for given row and column lists allowing for one smudge
+def smudge_sym_finder(row_list, col_list):
+    # Check rows for any immediate symmetry
+    # Records the row idx after which line of sym was found
+    pot_row_syms = []
+    pot_smudge_rows = []
+    row_idx = 0
+    last_row = "placeholder_________________________"
+    for row in row_list:
+        # Compare current row with last row allowing for one smudge
+        # If identical, record as potential sym line, as before
+        diff = 0
+        for i in range(len(row)):
+            if row[i] != last_row[i]:
+                diff += 1
+        if row == last_row:
+            pot_row_syms.append(row_idx-1)
+        elif diff == 1:
+            pot_smudge_rows.append(row_idx-1)
+        row_idx += 1
+        last_row = row
+    # Check columns for any immediate symmetry
+    # Records the col idx after which line of sym was found
+    pot_col_syms = []
+    pot_smudge_cols = []
+    col_idx = 0
+    last_col = "placeholder_________________________"
+    for col in col_list:
+        # Compare current col with last col allowing for one smudge
+        # If identical, record as potential sym line, as before
+        diff = 0
+        for i in range(len(col)):
+            if col[i] != last_col[i]:
+                diff += 1
+        if col == last_col:
+            pot_col_syms.append(col_idx-1)
+        elif diff == 1:
+            pot_smudge_cols.append(col_idx-1)
+        col_idx += 1
+        last_col = col
+    
+    # pot_row_syms and pot_col_syms now contain all potential lines of symmetry
+    # pot_smudge_rows and pot_smudge_cols contain all potential lines of symmetry allowing for one smudge
+    # //////////////////////////////////////////////
+    
+    # Now test the potential sym lines accounting for one smudge in the rest of the map
+    actual_row_sym = "placeholder"
+    actual_col_sym = "placeholder"
+
+    # Test horz lines of sym
+    for pot_sym in pot_row_syms:
+        # Split row_list at pot sym line into two test lists
+        test_0 = row_list[:pot_sym + 1]
+        test_1 = row_list[pot_sym + 1:]
+        # Must shorten longer list to be same size as shorter one
+        smaller_list_len = min([len(test_0), len(test_1)])
+        test_0 = test_0[-smaller_list_len:]
+        test_1 = test_1[:smaller_list_len]
+        test_2 = list(test_1)
+        test_2.reverse()
+        # If the reverse of one list is the same as the other EXCEPT 1 SMUDGE, we have found the line of symmetry
+        test_0 = "".join(test_0)
+        test_2 = "".join(test_2)
+        diff = 0
+        for i in range(len(test_0)):
+            if test_0[i] != test_2[i]:
+                diff += 1
+        if diff == 1:
+            actual_row_sym = pot_sym
+            return [actual_row_sym, actual_col_sym]
+
+    # Test vert lines of sym
+    for pot_sym in pot_col_syms:
+        # Split col_list at pot sym line into two test lists
+        test_0 = col_list[:pot_sym + 1]
+        test_1 = col_list[pot_sym + 1:]
+        # Must shorten longer list to be same size as shorter one
+        smaller_list_len = min([len(test_0), len(test_1)])
+        test_0 = test_0[-smaller_list_len:]
+        test_1 = test_1[:smaller_list_len]
+        test_2 = list(test_1)
+        test_2.reverse()
+        # If the reverse of one list is the same as the other EXCEPT 1 SMUDGE, we have found the line of symmetry
+        test_0 = "".join(test_0)
+        test_2 = "".join(test_2)
+        diff = 0
+        for i in range(len(test_0)):
+            if test_0[i] != test_2[i]:
+                diff += 1
+        if diff == 1:
+            actual_col_sym = pot_sym
+            return [actual_row_sym, actual_col_sym]
+
+    #//////////////////////////////////////////////
+    # Now test the potential smudge lines - rest of map must be identical
+    actual_row_sym = "placeholder"
+    actual_col_sym = "placeholder"
+
+    # Test horz lines of sym
+    for pot_sym in pot_smudge_rows:
+        # Split row_list at pot sym line (this time discluding the lines adj to the sym) into two test lists
+        test_0 = row_list[:pot_sym + 1]
+        test_1 = row_list[pot_sym + 1:]
+        # Must shorten longer list to be same size as shorter one
+        smaller_list_len = min([len(test_0), len(test_1)])
+        test_0 = test_0[-smaller_list_len:]
+        test_1 = test_1[:smaller_list_len]
+        test_2 = list(test_1)
+        test_2.reverse()
+        # If the reverse of one list is the same as the other, we have found the line of symmetry
+        test_0 = "".join(test_0)
+        test_2 = "".join(test_2)
+        diff = 0
+        for i in range(len(test_0)):
+            if test_0[i] != test_2[i]:
+                diff += 1
+        if diff == 1:
+            actual_row_sym = pot_sym
+            return [actual_row_sym, actual_col_sym]
+
+    # Test vert lines of sym
+    for pot_sym in pot_smudge_cols:
+        # Split col_list at pot sym line into two test lists
+        test_0 = col_list[:pot_sym + 1]
+        test_1 = col_list[pot_sym + 1:]
+        # Must shorten longer list to be same size as shorter one
+        smaller_list_len = min([len(test_0), len(test_1)])
+        test_0 = test_0[-smaller_list_len:]
+        test_1 = test_1[:smaller_list_len]
+        test_2 = list(test_1)
+        test_2.reverse()
+        # If the reverse of one list is the same as the other, we have found the line of symmetry
+        test_0 = "".join(test_0)
+        test_2 = "".join(test_2)
+        diff = 0
+        for i in range(len(test_0)):
+            if test_0[i] != test_2[i]:
+                diff += 1
+        if diff == 1:
+            actual_col_sym = pot_sym
+            return [actual_row_sym, actual_col_sym]
+
+# Sums scores across all maps in puzzle input
+sum_score = 0
+for map in map_catalogue:
+    [row_list, col_list] = row_col_formatter(map)
+    [row_sym, col_sym] = smudge_sym_finder(row_list, col_list)
+    score = score_calc(row_sym, col_sym)
+    sum_score += score
+print("PART 2 /// Sum smudge symmetry score: " + str(sum_score))
+
+
+
